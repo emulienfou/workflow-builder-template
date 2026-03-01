@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createJiti } from "jiti";
 import { dirname, join } from "node:path";
 import ts from "typescript";
 import {
@@ -227,8 +228,6 @@ async function generateStepRegistry(): Promise<void> {
  *
  * Generated entries: ${ stepEntries.length }
  */
-
-import "server-only";
 
 // biome-ignore lint/suspicious/noExplicitAny: Dynamic step module types - step functions take any input
 export type StepFunction = (input: any) => Promise<any>;
@@ -655,6 +654,21 @@ async function discoverPlugins() {
 
   console.log("\nGenerating plugins/index.ts...");
   generateIndexFile(plugins);
+
+  // Import each plugin to trigger registerIntegration() calls
+  // This populates the integrationRegistry before generating registry files
+  if (plugins.length > 0) {
+    console.log("\nRegistering plugins...");
+    const jiti = createJiti(import.meta.url, { jsx: true });
+    for (const plugin of plugins) {
+      try {
+        await jiti.import(join(PLUGINS_DIR, plugin));
+        console.log(`   Registered: ${ plugin }`);
+      } catch (error) {
+        console.warn(`   Warning: Failed to import plugin ${ plugin }:`, error);
+      }
+    }
+  }
 
   console.log("Generating lib/types/integration.ts...");
   await generateTypesFile();

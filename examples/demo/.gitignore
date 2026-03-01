@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# generated files
+lib/types/integration.ts
+lib/codegen-registry.ts
+lib/step-registry.ts
+lib/output-display-configs.ts
