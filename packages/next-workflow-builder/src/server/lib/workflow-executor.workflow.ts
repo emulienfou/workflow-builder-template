@@ -593,6 +593,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
               ? errorResult.error
               : errorResult.error?.message ||
               `Step "${ actionType }" in node "${ node.data.label || node.id }" failed without a specific error message.`;
+          console.error(`[Workflow Executor] Step "${ actionType }" failed:`, errorMessage);
           result = {
             success: false,
             error: errorMessage,
