@@ -15,6 +15,7 @@
  */
 
 // Side-effect imports: each plugin calls registerIntegration() on import
+import "./resend";
 import "./slack";
 
 // Re-export registry utilities so consuming apps can import from "@/plugins"
