@@ -266,6 +266,7 @@ const SYSTEM_ACTIONS: Array<{ id: string; label: string }> = [
   { id: "HTTP Request", label: "HTTP Request" },
   { id: "Database Query", label: "Database Query" },
   { id: "Condition", label: "Condition" },
+  { id: "loop", label: "Loop" },
 ];
 
 const SYSTEM_ACTION_IDS = SYSTEM_ACTIONS.map((a) => a.id);

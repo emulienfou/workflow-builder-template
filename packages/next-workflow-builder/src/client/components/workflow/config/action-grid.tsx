@@ -59,6 +59,12 @@ const SYSTEM_ACTIONS: ActionType[] = [
     description: "Branch based on a condition",
     category: "System",
   },
+  {
+    id: "loop",
+    label: "Loop",
+    description: "Loop through a list of items",
+    category: "System",
+  },
 ];
 
 // Combine System actions with plugin actions
@@ -74,6 +80,7 @@ function useAllActions(): ActionType[] {
       category: action.category,
       integration: action.integration,
     }));
+    console.log({mappedPluginActions});
 
     return [...SYSTEM_ACTIONS, ...mappedPluginActions];
   }, []);

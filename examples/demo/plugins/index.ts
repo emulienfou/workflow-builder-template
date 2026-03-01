@@ -14,4 +14,37 @@
  * 2. Run: pnpm discover-plugins (or it runs automatically on build)
  */
 
+// Side-effect imports: each plugin calls registerIntegration() on import
 import "./slack";
+
+// Re-export registry utilities so consuming apps can import from "@/plugins"
+export {
+  computeActionId,
+  findActionById,
+  flattenConfigFields,
+  generateAIActionPrompts,
+  getActionsByCategory,
+  getAllActions,
+  getAllDependencies,
+  getAllEnvVars,
+  getAllIntegrations,
+  getCredentialMapping,
+  getDependenciesForActions,
+  getIntegration,
+  getIntegrationLabels,
+  getIntegrationTypes,
+  getPluginEnvVars,
+  getSortedIntegrationTypes,
+  isFieldGroup,
+  parseActionId,
+  registerIntegration,
+} from "next-workflow-builder/plugins";
+
+export type {
+  ActionConfigField,
+  ActionConfigFieldBase,
+  ActionConfigFieldGroup,
+  ActionWithFullId,
+  IntegrationPlugin,
+  PluginAction,
+} from "next-workflow-builder/plugins";

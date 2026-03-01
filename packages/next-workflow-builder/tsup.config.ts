@@ -23,6 +23,7 @@ export default defineConfig({
     "typescript",
     "prettier",
     /^node:/,
+    "virtual:workflow-builder-plugins",
   ],
   async onSuccess() {
     // Ensure "use client" directive is present in client bundle
