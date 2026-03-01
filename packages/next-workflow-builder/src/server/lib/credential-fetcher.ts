@@ -1,5 +1,4 @@
-import { getCredentialMapping } from "../../../../../plugins";
-import { getIntegration } from "../../plugins";
+import { getCredentialMapping, getIntegration } from "../../plugins";
 import type { IntegrationConfig, IntegrationType } from "../../plugins/types";
 import { getIntegrationById } from "../db/integrations";
 import type { WorkflowCredentials } from "../types";
