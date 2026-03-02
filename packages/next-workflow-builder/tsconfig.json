@@ -10,7 +10,7 @@
     "strictNullChecks": true,
     "jsx": "react-jsx",
     "lib": ["esnext", "dom", "dom.iterable"],
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true
   },
   "include": ["src"],

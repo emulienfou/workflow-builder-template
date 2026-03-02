@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
-import { auth } from "../../../../../lib/auth";
+import { auth } from "../auth";
 import { generateWorkflowSDKCode } from "../../client/lib/workflow-codegen-sdk";
 import { WorkflowEdge, WorkflowNode } from "../../client/lib/workflow-store";
 import { resolveUser } from "../auth/resolve-user";

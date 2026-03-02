@@ -250,6 +250,7 @@ async function executeActionStep(input: {
     return await stepFunction(stepInput);
   }
 
+  // @ts-ignore
   const { getStepImporter } = await import("virtual:workflow-builder-step-registry");
   // Look up plugin action from the generated step registry
   const stepImporter = getStepImporter(actionType);
@@ -406,6 +407,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
     "trigger nodes",
   );
 
+  // @ts-ignore
   const { getActionLabel } = await import("virtual:workflow-builder-step-registry");
 
   // Helper to get a meaningful node name

@@ -16,7 +16,7 @@ export const SYSTEM_INTEGRATION_TYPES = ["database"] as const;
 // Regex patterns for codegen template generation
 export const LEADING_WHITESPACE_PATTERN = /^\s*/;
 // Path to the Next.js boilerplate directory
-export const BOILERPLATE_PATH = join(process.cwd(), "lib", "next-boilerplate");
+export const BOILERPLATE_PATH = join(".", "lib", "next-boilerplate");
 // Path to the codegen templates directory
 export const CODEGEN_TEMPLATES_PATH = join(process.cwd(), "lib", "codegen-templates");
 // Regex patterns for code generation
