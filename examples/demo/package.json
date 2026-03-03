@@ -1,0 +1,50 @@
+{
+  "name": "demo",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "discover-plugins": "nwb discover-plugins",
+    "create-plugin": "nwb create-plugin",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@ai-sdk/provider": "^2.0.0",
+    "@linear/sdk": "^63.2.0",
+    "@mendable/firecrawl-js": "^4.6.2",
+    "@slack/web-api": "^7.12.0",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/og": "^0.8.5",
+    "@vercel/sdk": "^1.17.1",
+    "@vercel/speed-insights": "^1.2.0",
+    "ai": "^5.0.102",
+    "drizzle-orm": "^0.44.7",
+    "next": "16.1.6",
+    "next-workflow-builder": "workspace:*",
+    "openai": "^6.8.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "resend": "^6.4.1",
+    "server-only": "^0.0.1",
+    "v0-sdk": "^0.15.1",
+    "vaul": "^1.1.2",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^17.3.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

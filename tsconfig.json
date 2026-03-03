@@ -36,8 +36,8 @@
   ],
   "exclude": [
     "node_modules",
-    "lib/next-boilerplate/**/*.ts",
-    "lib/next-boilerplate/**/*.tsx",
+    "packages/next-workflow-builder/src/server/lib/next-boilerplate/**/*.ts",
+    "packages/next-workflow-builder/src/server/lib/next-boilerplate/**/*.tsx",
     "tmp/**/*"
   ]
 }

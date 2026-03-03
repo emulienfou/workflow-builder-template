@@ -21,6 +21,7 @@
 /.next/
 /out/
 /.swc/
+.turbo/
 
 # production
 /build
@@ -53,3 +54,8 @@ lib/types/integration.ts
 lib/codegen-registry.ts
 lib/step-registry.ts
 lib/output-display-configs.ts
+
+dist/
+node_modules/
+.next/
+.idea/
