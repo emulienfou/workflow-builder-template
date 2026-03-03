@@ -1,8 +1,6 @@
 import { eq } from "drizzle-orm";
-import { isAiGatewayManagedKeysEnabled } from "@/lib/ai-gateway/config";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { accounts } from "@/lib/db/schema";
+import { isAiGatewayManagedKeysEnabled } from "next-workflow-builder/client";
+import { accounts, auth, db } from "next-workflow-builder/server";
 
 export type VercelTeam = {
   id: string;
@@ -29,7 +27,7 @@ type VercelUserResponse = {
  */
 async function fetchDefaultTeamId(accessToken: string): Promise<string | null> {
   const response = await fetch("https://api.vercel.com/v2/user", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${ accessToken }` },
   });
 
   if (!response.ok) return null;
@@ -43,7 +41,7 @@ async function fetchDefaultTeamId(accessToken: string): Promise<string | null> {
  */
 async function fetchTeams(accessToken: string): Promise<VercelTeam[]> {
   const response = await fetch("https://api.vercel.com/v2/teams", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${ accessToken }` },
   });
 
   if (!response.ok) return [];
@@ -58,7 +56,7 @@ async function fetchTeams(accessToken: string): Promise<VercelTeam[]> {
       name: team.name,
       slug: team.slug,
       // Team avatar URL uses teamId
-      avatar: `https://vercel.com/api/www/avatar?teamId=${team.id}&s=64`,
+      avatar: `https://vercel.com/api/www/avatar?teamId=${ team.id }&s=64`,
       isPersonal: false,
     });
   }
@@ -87,7 +85,7 @@ export async function GET(request: Request) {
   if (!account?.accessToken || account.providerId !== "vercel") {
     return Response.json(
       { error: "No Vercel account linked" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 

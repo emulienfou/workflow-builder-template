@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { isAiGatewayManagedKeysEnabled } from "@/lib/ai-gateway/config";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { accounts, integrations } from "@/lib/db/schema";
+import { isAiGatewayManagedKeysEnabled } from "next-workflow-builder/client";
+import { accounts, auth, db, integrations } from "next-workflow-builder/server";
 
 /**
  * GET /api/ai-gateway/status
@@ -46,7 +44,7 @@ export async function GET(request: Request) {
     where: and(
       eq(integrations.userId, session.user.id),
       eq(integrations.type, "ai-gateway"),
-      eq(integrations.isManaged, true)
+      eq(integrations.isManaged, true),
     ),
   });
 

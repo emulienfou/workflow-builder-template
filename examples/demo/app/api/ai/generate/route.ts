@@ -1,7 +1,7 @@
-import { streamText } from "ai";
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { generateAIActionPrompts } from "@/plugins";
+import { streamText } from "ai";
+import { auth } from "next-workflow-builder/server";
+import { NextResponse } from "next/server";
 
 // Simple type for operations
 type Operation = {
@@ -26,7 +26,7 @@ type Operation = {
 };
 
 function encodeMessage(encoder: TextEncoder, message: object): Uint8Array {
-  return encoder.encode(`${JSON.stringify(message)}\n`);
+  return encoder.encode(`${ JSON.stringify(message) }\n`);
 }
 
 function shouldSkipLine(line: string): boolean {
@@ -38,7 +38,7 @@ function tryParseAndEnqueueOperation(
   line: string,
   encoder: TextEncoder,
   controller: ReadableStreamDefaultController,
-  operationCount: number
+  operationCount: number,
 ): number {
   const trimmed = line.trim();
 
@@ -50,13 +50,13 @@ function tryParseAndEnqueueOperation(
     const operation = JSON.parse(trimmed) as Operation;
     const newCount = operationCount + 1;
 
-    console.log(`[API] Operation ${newCount}:`, operation.op);
+    console.log(`[API] Operation ${ newCount }:`, operation.op);
 
     controller.enqueue(
       encodeMessage(encoder, {
         type: "operation",
         operation,
-      })
+      }),
     );
 
     return newCount;
@@ -70,7 +70,7 @@ function processBufferLines(
   buffer: string,
   encoder: TextEncoder,
   controller: ReadableStreamDefaultController,
-  operationCount: number
+  operationCount: number,
 ): { remainingBuffer: string; newOperationCount: number } {
   const lines = buffer.split("\n");
   const remainingBuffer = lines.pop() || "";
@@ -81,7 +81,7 @@ function processBufferLines(
       line,
       encoder,
       controller,
-      newOperationCount
+      newOperationCount,
     );
   }
 
@@ -91,7 +91,7 @@ function processBufferLines(
 async function processOperationStream(
   textStream: AsyncIterable<string>,
   encoder: TextEncoder,
-  controller: ReadableStreamDefaultController
+  controller: ReadableStreamDefaultController,
 ): Promise<void> {
   let buffer = "";
   let operationCount = 0;
@@ -105,7 +105,7 @@ async function processOperationStream(
       buffer,
       encoder,
       controller,
-      operationCount
+      operationCount,
     );
     buffer = result.remainingBuffer;
     operationCount = result.newOperationCount;
@@ -116,18 +116,18 @@ async function processOperationStream(
     buffer,
     encoder,
     controller,
-    operationCount
+    operationCount,
   );
 
   console.log(
-    `[API] Stream complete. Chunks: ${chunkCount}, Operations: ${operationCount}`
+    `[API] Stream complete. Chunks: ${ chunkCount }, Operations: ${ operationCount }`,
   );
 
   // Send completion
   controller.enqueue(
     encodeMessage(encoder, {
       type: "complete",
-    })
+    }),
   );
 }
 
@@ -194,7 +194,7 @@ System action types (built-in):
 - Condition: {"actionType": "Condition", "condition": "{{@nodeId:Label.field}} === 'value'"}
 
 Plugin action types (from integrations):
-${pluginActionPrompts}
+${ pluginActionPrompts }
 
 CRITICAL ABOUT CONDITION NODES:
 - Condition nodes evaluate a boolean expression
@@ -262,7 +262,7 @@ export async function POST(request: Request) {
     if (!prompt) {
       return NextResponse.json(
         { error: "Prompt is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -273,7 +273,7 @@ export async function POST(request: Request) {
         {
           error: "AI API key not configured on server. Please contact support.",
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -284,29 +284,29 @@ export async function POST(request: Request) {
       const nodesList = (existingWorkflow.nodes || [])
         .map(
           (n: { id: string; data?: { label?: string } }) =>
-            `- ${n.id} (${n.data?.label || "Unlabeled"})`
+            `- ${ n.id } (${ n.data?.label || "Unlabeled" })`,
         )
         .join("\n");
 
       const edgesList = (existingWorkflow.edges || [])
         .map(
           (e: { id: string; source: string; target: string }) =>
-            `- ${e.id}: ${e.source} -> ${e.target}`
+            `- ${ e.id }: ${ e.source } -> ${ e.target }`,
         )
         .join("\n");
 
       userPrompt = `I have an existing workflow. I want you to make ONLY the changes I request.
 
 Current workflow nodes:
-${nodesList}
+${ nodesList }
 
 Current workflow edges:
-${edgesList}
+${ edgesList }
 
 Full workflow data (DO NOT recreate these, they already exist):
-${JSON.stringify(existingWorkflow, null, 2)}
+${ JSON.stringify(existingWorkflow, null, 2) }
 
-User's request: ${prompt}
+User's request: ${ prompt }
 
 IMPORTANT: Output ONLY the operations needed to make the requested changes.
 - If adding new nodes: output "addNode" operations for NEW nodes only, then IMMEDIATELY output "addEdge" operations to connect them to the workflow
@@ -345,7 +345,7 @@ Example: If user says "connect node A to node B", output:
                 error instanceof Error
                   ? error.message
                   : "Failed to generate workflow",
-            })
+            }),
           );
           controller.close();
         }
@@ -368,7 +368,7 @@ Example: If user says "connect node A to node B", output:
             ? error.message
             : "Failed to generate workflow",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

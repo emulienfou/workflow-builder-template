@@ -24,6 +24,7 @@
     "@vercel/sdk": "^1.17.1",
     "@vercel/speed-insights": "^1.2.0",
     "ai": "^5.0.102",
+    "drizzle-orm": "^0.44.7",
     "next": "16.1.6",
     "next-workflow-builder": "workspace:*",
     "openai": "^6.8.1",

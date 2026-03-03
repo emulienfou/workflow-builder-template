@@ -1,10 +1,6 @@
 import { and, eq } from "drizzle-orm";
-import { isAiGatewayManagedKeysEnabled } from "@/lib/ai-gateway/config";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { decrypt, encrypt } from "@/lib/db/integrations";
-import { accounts, integrations } from "@/lib/db/schema";
-import { generateId } from "@/lib/utils/id";
+import { isAiGatewayManagedKeysEnabled } from "next-workflow-builder/client";
+import { accounts, auth, db, decrypt, encrypt, generateId, integrations } from "next-workflow-builder/server";
 
 const API_KEY_PURPOSE = "ai-gateway";
 const API_KEY_NAME = "Workflow Builder Gateway Key";
@@ -16,7 +12,7 @@ const API_KEY_NAME = "Workflow Builder Gateway Key";
 async function getTeamId(accessToken: string): Promise<string | null> {
   // First, try to get teams the user has granted access to
   const teamsResponse = await fetch("https://api.vercel.com/v2/teams", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Authorization: `Bearer ${ accessToken }` },
   });
 
   if (teamsResponse.ok) {
@@ -31,7 +27,7 @@ async function getTeamId(accessToken: string): Promise<string | null> {
   // Fallback: get user ID from userinfo endpoint
   const userinfoResponse = await fetch(
     "https://api.vercel.com/login/oauth/userinfo",
-    { headers: { Authorization: `Bearer ${accessToken}` } }
+    { headers: { Authorization: `Bearer ${ accessToken }` } },
   );
 
   if (!userinfoResponse.ok) {
@@ -47,14 +43,14 @@ async function getTeamId(accessToken: string): Promise<string | null> {
  */
 async function createVercelApiKey(
   accessToken: string,
-  teamId: string
+  teamId: string,
 ): Promise<{ token: string; id: string } | null> {
   const response = await fetch(
-    `https://api.vercel.com/v1/api-keys?teamId=${teamId}`,
+    `https://api.vercel.com/v1/api-keys?teamId=${ teamId }`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${ accessToken }`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
@@ -62,13 +58,13 @@ async function createVercelApiKey(
         name: API_KEY_NAME,
         exchange: true,
       }),
-    }
+    },
   );
 
   if (!response.ok) {
     console.error(
       "[ai-gateway] Failed to create API key:",
-      await response.text()
+      await response.text(),
     );
     return null;
   }
@@ -121,14 +117,14 @@ async function saveIntegration(params: SaveIntegrationParams): Promise<string> {
 async function deleteVercelApiKey(
   accessToken: string,
   apiKeyId: string,
-  teamId: string
+  teamId: string,
 ): Promise<void> {
   await fetch(
-    `https://api.vercel.com/v1/api-keys/${apiKeyId}?teamId=${teamId}`,
+    `https://api.vercel.com/v1/api-keys/${ apiKeyId }?teamId=${ teamId }`,
     {
       method: "DELETE",
-      headers: { Authorization: `Bearer ${accessToken}` },
-    }
+      headers: { Authorization: `Bearer ${ accessToken }` },
+    },
   );
 }
 
@@ -153,7 +149,7 @@ export async function POST(request: Request) {
   if (!account?.accessToken || account.providerId !== "vercel") {
     return Response.json(
       { error: "No Vercel account linked" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -176,7 +172,7 @@ export async function POST(request: Request) {
   if (!teamId) {
     return Response.json(
       { error: "Could not determine user's team" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -185,7 +181,7 @@ export async function POST(request: Request) {
     if (!vercelApiKey) {
       return Response.json(
         { error: "Failed to create API key" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -206,7 +202,7 @@ export async function POST(request: Request) {
     console.error("[ai-gateway] Error creating API key:", e);
     return Response.json(
       { error: "Failed to create API key" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -232,7 +228,7 @@ export async function DELETE(request: Request) {
   if (!integrationId) {
     return Response.json(
       { error: "integrationId query parameter is required" },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -241,7 +237,7 @@ export async function DELETE(request: Request) {
       eq(integrations.id, integrationId),
       eq(integrations.userId, session.user.id),
       eq(integrations.type, "ai-gateway"),
-      eq(integrations.isManaged, true)
+      eq(integrations.isManaged, true),
     ),
   });
 
@@ -270,7 +266,7 @@ export async function DELETE(request: Request) {
         await deleteVercelApiKey(
           account.accessToken,
           config.managedKeyId,
-          config.teamId
+          config.teamId,
         );
       } catch (e) {
         console.error("[ai-gateway] Failed to delete API key from Vercel:", e);
