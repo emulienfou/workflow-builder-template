@@ -10,6 +10,11 @@
       // Cache all files emitted to the packages's directories
       "outputs": ["dist/**", ".next/**", "public/_pagefind/**"]
     },
+    "docs#build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**"],
+      "env": ["GITHUB_TOKEN", "GITHUB_API_REPO_BASE"]
+    },
     "test": {
       "outputs": ["dist/**"]
     },
