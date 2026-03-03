@@ -3,15 +3,15 @@
  */
 
 import { findActionById } from "../../../../plugins";
-import conditionTemplate from "../../../lib/codegen-templates/condition";
-import databaseQueryTemplate from "../../../lib/codegen-templates/database-query";
-import httpRequestTemplate from "../../../lib/codegen-templates/http-request";
+import { conditionAction } from "../../../../plugins/condition";
+import { databaseQueryAction } from "../../../../plugins/database-query";
+import { httpRequestAction } from "../../../../plugins/http-request";
 
 // System action templates (non-plugin actions)
 const SYSTEM_ACTION_TEMPLATES: Record<string, string> = {
-  "Database Query": databaseQueryTemplate,
-  "HTTP Request": httpRequestTemplate,
-  Condition: conditionTemplate,
+  "Database Query": databaseQueryAction.codeGenerator,
+  "HTTP Request": httpRequestAction.codeGenerator,
+  Condition: conditionAction.codeGenerator,
 };
 
 const FALLBACK_ACTION_CODE = `async function actionStep(input: Record<string, unknown>) {

@@ -1,21 +1,13 @@
 import "server-only";
 
 import { findActionById } from "../../plugins";
+import { conditionAction } from "../../plugins/condition";
+import { databaseQueryAction } from "../../plugins/database-query";
+import { httpRequestAction } from "../../plugins/http-request";
 // System action codegen templates (not in plugin registry)
-import conditionTemplate from "./codegen-templates/condition";
-import databaseQueryTemplate from "./codegen-templates/database-query";
-import httpRequestTemplate from "./codegen-templates/http-request";
-
-// System actions that don't have plugins
-const SYSTEM_CODEGEN_TEMPLATES: Record<string, string> = {
-  "Database Query": databaseQueryTemplate,
-  "HTTP Request": httpRequestTemplate,
-  Condition: conditionTemplate,
-};
-
 import {
-  ARRAY_INDEX_PATTERN,
   analyzeNodeUsage,
+  ARRAY_INDEX_PATTERN,
   buildEdgeMap,
   escapeForTemplateLiteral,
   findTriggerNodes,
@@ -24,6 +16,13 @@ import {
   sanitizeVarName,
 } from "./workflow-codegen-shared";
 import type { WorkflowEdge, WorkflowNode } from "./workflow-store";
+
+// System actions that don't have plugins
+const SYSTEM_CODEGEN_TEMPLATES: Record<string, string> = {
+  "Database Query": databaseQueryAction.codeGenerator,
+  "HTTP Request": httpRequestAction.codeGenerator,
+  Condition: conditionAction.codeGenerator,
+};
 
 /**
  * Load step implementation from templates
@@ -81,7 +80,7 @@ function processNewFormatID(trimmed: string, match: string): string {
   const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
 
   if (!fieldPath) {
-    return `\${outputs?.['${sanitizedNodeId}']?.data}`;
+    return `\${outputs?.['${ sanitizedNodeId }']?.data}`;
   }
 
   const accessPath = fieldPath
@@ -89,13 +88,13 @@ function processNewFormatID(trimmed: string, match: string): string {
     .map((part: string) => {
       const arrayMatch = part.match(ARRAY_INDEX_PATTERN);
       if (arrayMatch) {
-        return `?.${arrayMatch[1]}?.[${arrayMatch[2]}]`;
+        return `?.${ arrayMatch[1] }?.[${ arrayMatch[2] }]`;
       }
-      return `?.${part}`;
+      return `?.${ part }`;
     })
     .join("");
 
-  return `\${outputs?.['${sanitizedNodeId}']?.data${accessPath}}`;
+  return `\${outputs?.['${ sanitizedNodeId }']?.data${ accessPath }}`;
 }
 
 /**
@@ -106,7 +105,7 @@ function processLegacyDollarRef(trimmed: string): string {
 
   if (!(withoutDollar.includes(".") || withoutDollar.includes("["))) {
     const sanitizedNodeId = withoutDollar.replace(/[^a-zA-Z0-9]/g, "_");
-    return `\${outputs?.['${sanitizedNodeId}']?.data}`;
+    return `\${outputs?.['${ sanitizedNodeId }']?.data}`;
   }
 
   const parts = withoutDollar.split(".");
@@ -115,7 +114,7 @@ function processLegacyDollarRef(trimmed: string): string {
   const fieldPath = parts.slice(1).join(".");
 
   if (!fieldPath) {
-    return `\${outputs?.['${sanitizedNodeId}']?.data}`;
+    return `\${outputs?.['${ sanitizedNodeId }']?.data}`;
   }
 
   const accessPath = fieldPath
@@ -123,13 +122,13 @@ function processLegacyDollarRef(trimmed: string): string {
     .map((part: string) => {
       const arrayMatch = part.match(ARRAY_INDEX_PATTERN);
       if (arrayMatch) {
-        return `?.${arrayMatch[1]}?.[${arrayMatch[2]}]`;
+        return `?.${ arrayMatch[1] }?.[${ arrayMatch[2] }]`;
       }
-      return `?.${part}`;
+      return `?.${ part }`;
     })
     .join("");
 
-  return `\${outputs?.['${sanitizedNodeId}']?.data${accessPath}}`;
+  return `\${outputs?.['${ sanitizedNodeId }']?.data${ accessPath }}`;
 }
 
 /**
@@ -186,7 +185,7 @@ function createStepNameMapping(nodes: WorkflowNode[]): Map<string, string> {
       const count = stepNameCounts.get(baseName) || 0;
       stepNameCounts.set(baseName, count + 1);
 
-      const uniqueName = count > 0 ? `${baseName}${count + 1}` : baseName;
+      const uniqueName = count > 0 ? `${ baseName }${ count + 1 }` : baseName;
       nodeToStepName.set(node.id, uniqueName);
     }
   }
@@ -198,7 +197,7 @@ function createStepNameMapping(nodes: WorkflowNode[]): Map<string, string> {
 function generateAllStepFunctions(
   nodes: WorkflowNode[],
   nodeToStepName: Map<string, string>,
-  generateStepFunc: (node: WorkflowNode, name?: string) => string
+  generateStepFunc: (node: WorkflowNode, name?: string) => string,
 ): string[] {
   const stepFunctions: string[] = [];
 
@@ -219,7 +218,7 @@ function generateAllStepFunctions(
 export function generateWorkflowSDKCode(
   workflowName: string,
   nodes: WorkflowNode[],
-  edges: WorkflowEdge[]
+  edges: WorkflowEdge[],
 ): string {
   const imports = new Set<string>();
   const stepFunctions: string[] = [];
@@ -241,9 +240,9 @@ export function generateWorkflowSDKCode(
     imports.add("import { Resend } from 'resend';");
     return [
       `fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@example.com'`,
-      `emailTo: \`${convertTemplateToJS((config.emailTo as string) || "user@example.com")}\``,
-      `emailSubject: \`${convertTemplateToJS((config.emailSubject as string) || "Notification")}\``,
-      `emailBody: \`${convertTemplateToJS((config.emailBody as string) || "No content")}\``,
+      `emailTo: \`${ convertTemplateToJS((config.emailTo as string) || "user@example.com") }\``,
+      `emailSubject: \`${ convertTemplateToJS((config.emailSubject as string) || "Notification") }\``,
+      `emailBody: \`${ convertTemplateToJS((config.emailBody as string) || "No content") }\``,
       "apiKey: process.env.RESEND_API_KEY!",
     ];
   }
@@ -251,8 +250,8 @@ export function generateWorkflowSDKCode(
   function buildSlackParams(config: Record<string, unknown>): string[] {
     imports.add("import { WebClient } from '@slack/web-api';");
     return [
-      `slackChannel: \`${convertTemplateToJS((config.slackChannel as string) || "#general")}\``,
-      `slackMessage: \`${convertTemplateToJS((config.slackMessage as string) || "No message")}\``,
+      `slackChannel: \`${ convertTemplateToJS((config.slackChannel as string) || "#general") }\``,
+      `slackMessage: \`${ convertTemplateToJS((config.slackMessage as string) || "No message") }\``,
       "apiKey: process.env.SLACK_API_KEY!",
     ];
   }
@@ -260,12 +259,12 @@ export function generateWorkflowSDKCode(
   function buildTicketParams(config: Record<string, unknown>): string[] {
     imports.add("import { LinearClient } from '@linear/sdk';");
     const params = [
-      `ticketTitle: \`${convertTemplateToJS((config.ticketTitle as string) || "New Issue")}\``,
-      `ticketDescription: \`${convertTemplateToJS((config.ticketDescription as string) || "")}\``,
+      `ticketTitle: \`${ convertTemplateToJS((config.ticketTitle as string) || "New Issue") }\``,
+      `ticketDescription: \`${ convertTemplateToJS((config.ticketDescription as string) || "") }\``,
       "apiKey: process.env.LINEAR_API_KEY!",
     ];
     if (config.teamId) {
-      params.push(`teamId: "${config.teamId}"`);
+      params.push(`teamId: "${ config.teamId }"`);
     }
     return params;
   }
@@ -289,57 +288,57 @@ export function generateWorkflowSDKCode(
       } else {
         provider = "openai"; // default to openai
       }
-      modelString = `${provider}/${modelId}`;
+      modelString = `${ provider }/${ modelId }`;
     }
 
     return [
-      `model: "${modelString}"`,
-      `prompt: \`${convertTemplateToJS((config.aiPrompt as string) || "")}\``,
+      `model: "${ modelString }"`,
+      `prompt: \`${ convertTemplateToJS((config.aiPrompt as string) || "") }\``,
       "apiKey: process.env.OPENAI_API_KEY!",
     ];
   }
 
   function buildAIImageParams(config: Record<string, unknown>): string[] {
     imports.add(
-      "import { experimental_generateImage as generateImage } from 'ai';"
+      "import { experimental_generateImage as generateImage } from 'ai';",
     );
     const imageModel =
       (config.imageModel as string) || "google/imagen-4.0-generate";
     return [
-      `model: "${imageModel}"`,
-      `prompt: \`${convertTemplateToJS((config.imagePrompt as string) || "")}\``,
-      'size: "1024x1024"',
+      `model: "${ imageModel }"`,
+      `prompt: \`${ convertTemplateToJS((config.imagePrompt as string) || "") }\``,
+      "size: \"1024x1024\"",
       "providerOptions: { openai: { apiKey: process.env.AI_GATEWAY_API_KEY! } }",
     ];
   }
 
   function buildDatabaseParams(config: Record<string, unknown>): string[] {
     return [
-      `query: \`${convertTemplateToJS((config.dbQuery as string) || "SELECT 1")}\``,
+      `query: \`${ convertTemplateToJS((config.dbQuery as string) || "SELECT 1") }\``,
     ];
   }
 
   function buildHttpParams(config: Record<string, unknown>): string[] {
     const params = [
-      `url: "${config.endpoint || "https://api.example.com/endpoint"}"`,
-      `method: "${config.httpMethod || "POST"}"`,
-      `headers: ${config.httpHeaders || "{}"}`,
+      `url: "${ config.endpoint || "https://api.example.com/endpoint" }"`,
+      `method: "${ config.httpMethod || "POST" }"`,
+      `headers: ${ config.httpHeaders || "{}" }`,
     ];
     if (config.httpBody) {
-      params.push(`body: ${config.httpBody}`);
+      params.push(`body: ${ config.httpBody }`);
     }
     return params;
   }
 
   function buildConditionParams(config: Record<string, unknown>): string[] {
     return [
-      `condition: ${convertTemplateToJS((config.condition as string) || "true")}`,
+      `condition: ${ convertTemplateToJS((config.condition as string) || "true") }`,
     ];
   }
 
   function buildFirecrawlParams(
     actionType: string,
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): string[] {
     imports.add("import FirecrawlApp from '@mendable/firecrawl-js';");
 
@@ -349,23 +348,23 @@ export function generateWorkflowSDKCode(
       : "['markdown']";
 
     const params = [
-      `mode: '${mode}'`,
+      `mode: '${ mode }'`,
       "apiKey: process.env.FIRECRAWL_API_KEY!",
-      `formats: ${formats}`,
+      `formats: ${ formats }`,
     ];
 
     if (config.url) {
       params.push(
-        `url: \`${convertTemplateToJS((config.url as string) || "")}\``
+        `url: \`${ convertTemplateToJS((config.url as string) || "") }\``,
       );
     }
     if (config.query) {
       params.push(
-        `query: \`${convertTemplateToJS((config.query as string) || "")}\``
+        `query: \`${ convertTemplateToJS((config.query as string) || "") }\``,
       );
     }
     if (config.limit) {
-      params.push(`limit: ${config.limit}`);
+      params.push(`limit: ${ config.limit }`);
     }
 
     return params;
@@ -374,12 +373,12 @@ export function generateWorkflowSDKCode(
   function buildV0CreateChatParams(config: Record<string, unknown>): string[] {
     imports.add("import { createClient } from 'v0-sdk';");
     const params = [
-      `message: \`${convertTemplateToJS((config.message as string) || "")}\``,
+      `message: \`${ convertTemplateToJS((config.message as string) || "") }\``,
       "apiKey: process.env.V0_API_KEY!",
     ];
     if (config.system) {
       params.push(
-        `system: \`${convertTemplateToJS((config.system as string) || "")}\``
+        `system: \`${ convertTemplateToJS((config.system as string) || "") }\``,
       );
     }
     return params;
@@ -388,92 +387,92 @@ export function generateWorkflowSDKCode(
   function buildV0SendMessageParams(config: Record<string, unknown>): string[] {
     imports.add("import { createClient } from 'v0-sdk';");
     return [
-      `chatId: \`${convertTemplateToJS((config.chatId as string) || "")}\``,
-      `message: \`${convertTemplateToJS((config.message as string) || "")}\``,
+      `chatId: \`${ convertTemplateToJS((config.chatId as string) || "") }\``,
+      `message: \`${ convertTemplateToJS((config.message as string) || "") }\``,
       "apiKey: process.env.V0_API_KEY!",
     ];
   }
 
   function buildClerkGetUserParams(config: Record<string, unknown>): string[] {
     return [
-      `userId: \`${convertTemplateToJS((config.userId as string) || "")}\``,
+      `userId: \`${ convertTemplateToJS((config.userId as string) || "") }\``,
     ];
   }
 
   function buildClerkCreateUserParams(
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): string[] {
     const params = [
-      `emailAddress: \`${convertTemplateToJS((config.emailAddress as string) || "")}\``,
+      `emailAddress: \`${ convertTemplateToJS((config.emailAddress as string) || "") }\``,
     ];
     if (config.password) {
       params.push(
-        `password: \`${convertTemplateToJS(config.password as string)}\``
+        `password: \`${ convertTemplateToJS(config.password as string) }\``,
       );
     }
     if (config.firstName) {
       params.push(
-        `firstName: \`${convertTemplateToJS(config.firstName as string)}\``
+        `firstName: \`${ convertTemplateToJS(config.firstName as string) }\``,
       );
     }
     if (config.lastName) {
       params.push(
-        `lastName: \`${convertTemplateToJS(config.lastName as string)}\``
+        `lastName: \`${ convertTemplateToJS(config.lastName as string) }\``,
       );
     }
     if (config.publicMetadata) {
       params.push(
-        `publicMetadata: \`${convertTemplateToJS(config.publicMetadata as string)}\``
+        `publicMetadata: \`${ convertTemplateToJS(config.publicMetadata as string) }\``,
       );
     }
     if (config.privateMetadata) {
       params.push(
-        `privateMetadata: \`${convertTemplateToJS(config.privateMetadata as string)}\``
+        `privateMetadata: \`${ convertTemplateToJS(config.privateMetadata as string) }\``,
       );
     }
     return params;
   }
 
   function buildClerkUpdateUserParams(
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): string[] {
     const params = [
-      `userId: \`${convertTemplateToJS((config.userId as string) || "")}\``,
+      `userId: \`${ convertTemplateToJS((config.userId as string) || "") }\``,
     ];
     if (config.firstName) {
       params.push(
-        `firstName: \`${convertTemplateToJS(config.firstName as string)}\``
+        `firstName: \`${ convertTemplateToJS(config.firstName as string) }\``,
       );
     }
     if (config.lastName) {
       params.push(
-        `lastName: \`${convertTemplateToJS(config.lastName as string)}\``
+        `lastName: \`${ convertTemplateToJS(config.lastName as string) }\``,
       );
     }
     if (config.publicMetadata) {
       params.push(
-        `publicMetadata: \`${convertTemplateToJS(config.publicMetadata as string)}\``
+        `publicMetadata: \`${ convertTemplateToJS(config.publicMetadata as string) }\``,
       );
     }
     if (config.privateMetadata) {
       params.push(
-        `privateMetadata: \`${convertTemplateToJS(config.privateMetadata as string)}\``
+        `privateMetadata: \`${ convertTemplateToJS(config.privateMetadata as string) }\``,
       );
     }
     return params;
   }
 
   function buildClerkDeleteUserParams(
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): string[] {
     return [
-      `userId: \`${convertTemplateToJS((config.userId as string) || "")}\``,
+      `userId: \`${ convertTemplateToJS((config.userId as string) || "") }\``,
     ];
   }
 
   function buildStepInputParams(
     actionType: string,
-    config: Record<string, unknown>
+    config: Record<string, unknown>,
   ): string[] {
     const paramBuilders: Record<string, () => string[]> = {
       "Send Email": () => buildEmailParams(config),
@@ -501,7 +500,7 @@ export function generateWorkflowSDKCode(
 
   function generateStepFunction(
     node: WorkflowNode,
-    uniqueStepName?: string
+    uniqueStepName?: string,
   ): string {
     const config = node.data.config || {};
     const actionType = config.actionType as string;
@@ -515,44 +514,44 @@ export function generateWorkflowSDKCode(
       const inputParams = buildStepInputParams(actionType, config);
       stepBody = `  // Call step function with constructed input
   const stepInput = {
-    ${inputParams.join(",\n    ")}
+    ${ inputParams.join(",\n    ") }
   };
 
       // Execute step implementation
-      ${stepImplementation}`;
+      ${ stepImplementation }`;
     } else {
       stepBody = "  return { success: true };";
     }
 
-    return `async function ${stepName}(input: Record<string, unknown> & { outputs?: Record<string, { label: string; data: unknown }> }) {
+    return `async function ${ stepName }(input: Record<string, unknown> & { outputs?: Record<string, { label: string; data: unknown }> }) {
   "use step";
   
-${stepBody}
+${ stepBody }
 }`;
   }
 
   // Generate all step functions with unique names
   const nodeToStepName = createStepNameMapping(nodes);
   stepFunctions.push(
-    ...generateAllStepFunctions(nodes, nodeToStepName, generateStepFunction)
+    ...generateAllStepFunctions(nodes, nodeToStepName, generateStepFunction),
   );
 
   // Helper to generate trigger node code
   function generateTriggerCode(
     nodeId: string,
     label: string,
-    indent: string
+    indent: string,
   ): string[] {
     // Skip trigger code if trigger outputs aren't used
     if (!usedNodeOutputs.has(nodeId)) {
-      return [`${indent}// Trigger (outputs not used)`];
+      return [`${ indent }// Trigger (outputs not used)`];
     }
 
-    const varName = `result_${sanitizeVarName(nodeId)}`;
+    const varName = `result_${ sanitizeVarName(nodeId) }`;
     return [
-      `${indent}// Triggered`,
-      `${indent}let ${varName} = input;`,
-      `${indent}outputs['${sanitizeVarName(nodeId)}'] = { label: '${label}', data: ${varName} };`,
+      `${ indent }// Triggered`,
+      `${ indent }let ${ varName } = input;`,
+      `${ indent }outputs['${ sanitizeVarName(nodeId) }'] = { label: '${ label }', data: ${ varName } };`,
     ];
   }
 
@@ -561,29 +560,29 @@ ${stepBody}
     nodeId: string,
     nodeConfig: Record<string, unknown>,
     label: string,
-    indent: string
+    indent: string,
   ): string[] {
     const nodeActionType = nodeConfig.actionType as string;
     const nodeLabel = label || nodeActionType || "UnnamedStep";
     const stepFnName =
       nodeToStepName.get(nodeId) || sanitizeStepName(nodeLabel);
 
-    const lines: string[] = [`${indent}// ${nodeLabel}`];
+    const lines: string[] = [`${ indent }// ${ nodeLabel }`];
 
     // Check if this node's output is used by any downstream node
     const outputIsUsed = usedNodeOutputs.has(nodeId);
 
     if (outputIsUsed) {
-      const varName = `result_${sanitizeVarName(nodeId)}`;
+      const varName = `result_${ sanitizeVarName(nodeId) }`;
       lines.push(
-        `${indent}const ${varName} = await ${stepFnName}({ ...input, outputs });`
+        `${ indent }const ${ varName } = await ${ stepFnName }({ ...input, outputs });`,
       );
       lines.push(
-        `${indent}outputs['${sanitizeVarName(nodeId)}'] = { label: '${nodeLabel}', data: ${varName} };`
+        `${ indent }outputs['${ sanitizeVarName(nodeId) }'] = { label: '${ nodeLabel }', data: ${ varName } };`,
       );
     } else {
       // If output not used, don't store the result in a variable
-      lines.push(`${indent}await ${stepFnName}({ ...input, outputs });`);
+      lines.push(`${ indent }await ${ stepFnName }({ ...input, outputs });`);
     }
 
     return lines;
@@ -594,35 +593,35 @@ ${stepBody}
     nodeId: string,
     node: WorkflowNode,
     indent: string,
-    visitedLocal: Set<string>
+    visitedLocal: Set<string>,
   ): string[] {
     const condition = (node.data.config?.condition as string) || "true";
     const convertedCondition = convertTemplateToJS(condition);
     const nextNodes = edgesBySource.get(nodeId) || [];
-    const conditionVarName = `conditionValue_${sanitizeVarName(nodeId)}`;
+    const conditionVarName = `conditionValue_${ sanitizeVarName(nodeId) }`;
     const lines: string[] = [];
 
     if (nextNodes.length > 0) {
-      lines.push(`${indent}// ${node.data.label}`);
+      lines.push(`${ indent }// ${ node.data.label }`);
       lines.push(
-        `${indent}const ${conditionVarName} = \`${escapeForTemplateLiteral(convertedCondition)}\`;`
+        `${ indent }const ${ conditionVarName } = \`${ escapeForTemplateLiteral(convertedCondition) }\`;`,
       );
-      lines.push(`${indent}if (${conditionVarName}) {`);
+      lines.push(`${ indent }if (${ conditionVarName }) {`);
 
       if (nextNodes[0]) {
         lines.push(
-          ...generateWorkflowBody(nextNodes[0], `${indent}  `, visitedLocal)
+          ...generateWorkflowBody(nextNodes[0], `${ indent }  `, visitedLocal),
         );
       }
 
       if (nextNodes[1]) {
-        lines.push(`${indent}} else {`);
+        lines.push(`${ indent }} else {`);
         lines.push(
-          ...generateWorkflowBody(nextNodes[1], `${indent}  `, visitedLocal)
+          ...generateWorkflowBody(nextNodes[1], `${ indent }  `, visitedLocal),
         );
       }
 
-      lines.push(`${indent}}`);
+      lines.push(`${ indent }}`);
     }
 
     return lines;
@@ -632,7 +631,7 @@ ${stepBody}
   function generateWorkflowBody(
     nodeId: string,
     indent = "  ",
-    visitedLocal: Set<string> = new Set()
+    visitedLocal: Set<string> = new Set(),
   ): string[] {
     if (visitedLocal.has(nodeId)) {
       return [];
@@ -656,7 +655,7 @@ ${stepBody}
         // Handle condition as an action type
         if (actionType === "Condition") {
           lines.push(
-            ...generateConditionCode(nodeId, node, indent, visitedLocal)
+            ...generateConditionCode(nodeId, node, indent, visitedLocal),
           );
           // Conditions handle their own next nodes
           return lines;
@@ -666,14 +665,14 @@ ${stepBody}
             nodeId,
             node.data.config || {},
             node.data.label,
-            indent
-          )
+            indent,
+          ),
         );
         break;
       }
 
       default:
-        lines.push(`${indent}// Unknown node type: ${node.data.type}`);
+        lines.push(`${ indent }// Unknown node type: ${ node.data.type }`);
         break;
     }
 
@@ -689,14 +688,14 @@ ${stepBody}
   const workflowBody: string[] = [];
 
   if (triggerNodes.length === 0) {
-    workflowBody.push('  return { error: "No trigger nodes" };');
+    workflowBody.push("  return { error: \"No trigger nodes\" };");
   } else {
     // Initialize outputs tracking
     workflowBody.push(
-      "  // Track outputs from each node for template processing"
+      "  // Track outputs from each node for template processing",
     );
     workflowBody.push(
-      "  const outputs: Record<string, { label: string; data: unknown }> = {};"
+      "  const outputs: Record<string, { label: string; data: unknown }> = {};",
     );
     workflowBody.push("");
 
@@ -707,29 +706,29 @@ ${stepBody}
     // Find the last node to return its result
     const lastNode = nodes.at(-1);
     if (lastNode) {
-      const lastVarName = `result_${sanitizeVarName(lastNode.id)}`;
+      const lastVarName = `result_${ sanitizeVarName(lastNode.id) }`;
       workflowBody.push("");
-      workflowBody.push(`  return ${lastVarName};`);
+      workflowBody.push(`  return ${ lastVarName };`);
     }
   }
 
   const functionName = sanitizeFunctionName(workflowName);
 
-  const mainFunction = `export async function ${functionName}() {
+  const mainFunction = `export async function ${ functionName }() {
   "use workflow";
   
   // Input from workflow trigger - replace with your trigger data
   const input: Record<string, unknown> = {};
   
-${workflowBody.join("\n")}
+${ workflowBody.join("\n") }
 }`;
 
   // Combine everything
-  const code = `${Array.from(imports).join("\n")}
+  const code = `${ Array.from(imports).join("\n") }
 
-${stepFunctions.join("\n\n")}
+${ stepFunctions.join("\n\n") }
 
-${mainFunction}
+${ mainFunction }
 `;
 
   return code;

@@ -1,11 +1,13 @@
-/**
- * Code template for Database Query action step
- * This is a string template used for code generation - keep as string export
- *
- * Requires: pnpm add postgres
- * Environment: DATABASE_URL
- */
-export default `export async function databaseQueryStep(input: {
+import { Database } from "lucide-react";
+import { ActionType } from "../../client/components/workflow/config/action-grid";
+
+const databaseQueryAction: ActionType = {
+  id: "Database Query",
+  label: "Database Query",
+  description: "Query your database",
+  category: "System",
+  icon: <Database className="size-12 text-blue-300" strokeWidth={ 1.5 }/>,
+  codeGenerator: `export async function databaseQueryStep(input: {
   query: string;
 }) {
   "use step";
@@ -27,4 +29,7 @@ export default `export async function databaseQueryStep(input: {
     const message = error instanceof Error ? error.message : String(error);
     return { success: false, error: \`Database query failed: \${message}\` };
   }
-}`;
+}`,
+};
+
+export { databaseQueryAction };

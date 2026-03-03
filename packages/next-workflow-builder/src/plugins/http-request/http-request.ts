@@ -3,8 +3,8 @@
  */
 import "server-only";
 
-import { getErrorMessage } from "../utils";
-import { type StepInput, withStepLogging } from "./step-handler";
+import { getErrorMessage } from "../../server/lib/utils";
+import { type StepInput, withStepLogging } from "../../server/lib/steps/step-handler";
 
 type HttpRequestResult =
   | { success: true; data: unknown; status: number }

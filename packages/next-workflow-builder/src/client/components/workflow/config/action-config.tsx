@@ -3,42 +3,24 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { HelpCircle, Plus, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { findActionById, getActionsByCategory, getAllIntegrations } from "../../../../plugins";
+import { ConditionFields } from "../../../../plugins/condition/fields";
+import { DatabaseQueryFields } from "../../../../plugins/database-query/fields";
+import { HttpRequestFields } from "../../../../plugins/http-request/fields";
+import { LoopFields } from "../../../../plugins/loop/fields";
+import type { IntegrationType } from "../../../../plugins/types";
+import { aiGatewayStatusAtom } from "../../../lib/ai-gateway/state";
+import { integrationsAtom, integrationsVersionAtom } from "../../../lib/integrations-store";
 import { ConfigureConnectionOverlay } from "../../overlays/add-connection-overlay";
 import { AiGatewayConsentOverlay } from "../../overlays/ai-gateway-consent-overlay";
 import { useOverlay } from "../../overlays/overlay-provider";
 import { Button } from "../../ui/button";
-import { CodeEditor } from "../../ui/code-editor";
 import { IntegrationIcon } from "../../ui/integration-icon";
 import { IntegrationSelector } from "../../ui/integration-selector";
 import { Label } from "../../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "../../ui/select";
-import { TemplateBadgeInput } from "../../ui/template-badge-input";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "../../ui/tooltip";
-import { aiGatewayStatusAtom } from "../../../lib/ai-gateway/state";
-import {
-  integrationsAtom,
-  integrationsVersionAtom,
-} from "../../../lib/integrations-store";
-import type { IntegrationType } from "../../../../plugins/types";
-import {
-  findActionById,
-  getActionsByCategory,
-  getAllIntegrations,
-} from "../../../../plugins";
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from "../../ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../../ui/tooltip";
 import { ActionConfigRenderer } from "./action-config-renderer";
-import { SchemaBuilder, type SchemaField } from "./schema-builder";
 
 type ActionConfigProps = {
   config: Record<string, unknown>;
@@ -46,178 +28,6 @@ type ActionConfigProps = {
   disabled: boolean;
   isOwner?: boolean;
 };
-
-// Database Query fields component
-function DatabaseQueryFields({
-  config,
-  onUpdateConfig,
-  disabled,
-}: {
-  config: Record<string, unknown>;
-  onUpdateConfig: (key: string, value: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <>
-      <div className="space-y-2">
-        <Label htmlFor="dbQuery">SQL Query</Label>
-        <div className="overflow-hidden rounded-md border">
-          <CodeEditor
-            defaultLanguage="sql"
-            height="150px"
-            onChange={ (value) => onUpdateConfig("dbQuery", value || "") }
-            options={ {
-              minimap: { enabled: false },
-              lineNumbers: "on",
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              readOnly: disabled,
-              wordWrap: "off",
-            } }
-            value={ (config?.dbQuery as string) || "" }
-          />
-        </div>
-        <p className="text-muted-foreground text-xs">
-          The DATABASE_URL from your project integrations will be used to
-          execute this query.
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label>Schema (Optional)</Label>
-        <SchemaBuilder
-          disabled={ disabled }
-          onChange={ (schema) =>
-            onUpdateConfig("dbSchema", JSON.stringify(schema))
-          }
-          schema={
-            config?.dbSchema
-              ? (JSON.parse(config.dbSchema as string) as SchemaField[])
-              : []
-          }
-        />
-      </div>
-    </>
-  );
-}
-
-// HTTP Request fields component
-function HttpRequestFields({
-  config,
-  onUpdateConfig,
-  disabled,
-}: {
-  config: Record<string, unknown>;
-  onUpdateConfig: (key: string, value: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <>
-      <div className="space-y-2">
-        <Label htmlFor="httpMethod">HTTP Method</Label>
-        <Select
-          disabled={ disabled }
-          onValueChange={ (value) => onUpdateConfig("httpMethod", value) }
-          value={ (config?.httpMethod as string) || "POST" }
-        >
-          <SelectTrigger className="w-full" id="httpMethod">
-            <SelectValue placeholder="Select method"/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="GET">GET</SelectItem>
-            <SelectItem value="POST">POST</SelectItem>
-            <SelectItem value="PUT">PUT</SelectItem>
-            <SelectItem value="PATCH">PATCH</SelectItem>
-            <SelectItem value="DELETE">DELETE</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="endpoint">URL</Label>
-        <TemplateBadgeInput
-          disabled={ disabled }
-          id="endpoint"
-          onChange={ (value) => onUpdateConfig("endpoint", value) }
-          placeholder="https://api.example.com/endpoint or {{NodeName.url}}"
-          value={ (config?.endpoint as string) || "" }
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="httpHeaders">Headers (JSON)</Label>
-        <div className="overflow-hidden rounded-md border">
-          <CodeEditor
-            defaultLanguage="json"
-            height="100px"
-            onChange={ (value) => onUpdateConfig("httpHeaders", value || "{}") }
-            options={ {
-              minimap: { enabled: false },
-              lineNumbers: "off",
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              readOnly: disabled,
-              wordWrap: "off",
-            } }
-            value={ (config?.httpHeaders as string) || "{}" }
-          />
-        </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="httpBody">Body (JSON)</Label>
-        <div
-          className={ `overflow-hidden rounded-md border ${ config?.httpMethod === "GET" ? "opacity-50" : "" }` }
-        >
-          <CodeEditor
-            defaultLanguage="json"
-            height="120px"
-            onChange={ (value) => onUpdateConfig("httpBody", value || "{}") }
-            options={ {
-              minimap: { enabled: false },
-              lineNumbers: "off",
-              scrollBeyondLastLine: false,
-              fontSize: 12,
-              readOnly: config?.httpMethod === "GET" || disabled,
-              domReadOnly: config?.httpMethod === "GET" || disabled,
-              wordWrap: "off",
-            } }
-            value={ (config?.httpBody as string) || "{}" }
-          />
-        </div>
-        { config?.httpMethod === "GET" && (
-          <p className="text-muted-foreground text-xs">
-            Body is disabled for GET requests
-          </p>
-        ) }
-      </div>
-    </>
-  );
-}
-
-// Condition fields component
-function ConditionFields({
-  config,
-  onUpdateConfig,
-  disabled,
-}: {
-  config: Record<string, unknown>;
-  onUpdateConfig: (key: string, value: string) => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="space-y-2">
-      <Label htmlFor="condition">Condition Expression</Label>
-      <TemplateBadgeInput
-        disabled={ disabled }
-        id="condition"
-        onChange={ (value) => onUpdateConfig("condition", value) }
-        placeholder="e.g., 5 > 3, status === 200, {{PreviousNode.value}} > 100"
-        value={ (config?.condition as string) || "" }
-      />
-      <p className="text-muted-foreground text-xs">
-        Enter a JavaScript expression that evaluates to true or false. You can
-        use @ to reference previous node outputs.
-      </p>
-    </div>
-  );
-}
 
 // System action fields wrapper - extracts conditional rendering to reduce complexity
 function SystemActionFields({
@@ -256,6 +66,14 @@ function SystemActionFields({
           onUpdateConfig={ onUpdateConfig }
         />
       );
+    case "Loop":
+      return (
+        <LoopFields
+          config={ config }
+          disabled={ disabled }
+          onUpdateConfig={ onUpdateConfig }
+        />
+      );
     default:
       return null;
   }
@@ -266,7 +84,7 @@ const SYSTEM_ACTIONS: Array<{ id: string; label: string }> = [
   { id: "HTTP Request", label: "HTTP Request" },
   { id: "Database Query", label: "Database Query" },
   { id: "Condition", label: "Condition" },
-  { id: "loop", label: "Loop" },
+  { id: "Loop", label: "Loop" },
 ];
 
 const SYSTEM_ACTION_IDS = SYSTEM_ACTIONS.map((a) => a.id);

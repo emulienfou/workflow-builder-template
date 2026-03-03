@@ -1,8 +1,13 @@
-/**
- * Code template for HTTP Request action step
- * This is a string template used for code generation - keep as string export
- */
-export default `export async function httpRequestStep(input: {
+import { Zap } from "lucide-react";
+import { ActionType } from "../../client/components/workflow/config/action-grid";
+
+const httpRequestAction: ActionType = {
+  id: "HTTP Request",
+  label: "HTTP Request",
+  description: "Make an HTTP request to any API",
+  category: "System",
+  icon: <Zap className="size-12 text-amber-300" strokeWidth={ 1.5 }/>,
+  codeGenerator: `export async function httpRequestStep(input: {
   endpoint: string;
   httpMethod: string;
   httpHeaders?: string;
@@ -44,4 +49,7 @@ export default `export async function httpRequestStep(input: {
     return await response.json();
   }
   return await response.text();
-}`;
+}`,
+};
+
+export { httpRequestAction };
