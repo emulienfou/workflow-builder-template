@@ -40,7 +40,6 @@ Running `nwb discover-plugins` generates these files in your consumer app:
 | `lib/step-registry.ts` | Maps action IDs to lazy step import functions |
 | `lib/output-display-configs.ts` | Maps action IDs to output display configurations |
 | `lib/codegen-registry.ts` | Code generation templates for workflow export |
-| `lib/route-registry.ts` | Custom API route definitions from plugins |
 
 The `lib/` files are regenerated every time you run the discovery script. Do not edit them manually.
 `plugins/index.ts` is scaffolded once and then managed by you — edit it to add or remove plugins.

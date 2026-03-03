@@ -41,7 +41,6 @@ npx nwb discover-plugins
    - `lib/step-registry.ts` - Maps action IDs to lazy step import functions
    - `lib/output-display-configs.ts` - Maps action IDs to display configurations
    - `lib/codegen-registry.ts` - Code generation templates
-   - `lib/route-registry.ts` - Custom API route definitions from plugins
 
 **When to run:**
 
@@ -84,7 +83,7 @@ Run database migrations for production deployments (e.g. on Vercel).
 npx nwb migrate-prod
 ```
 
-Reads the database URL from `NEXT_WORKFLOW_BUILDER_DATABASE_URL` and applies any pending schema migrations.
+Reads the database URL from `DATABASE_URL` and applies any pending schema migrations.
 
 ## Help
 

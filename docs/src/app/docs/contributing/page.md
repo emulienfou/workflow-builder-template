@@ -7,9 +7,9 @@ The project is a pnpm monorepo managed with Turborepo:
 ```
 next-workflow-builder/
 ├── packages/
-│   ├── next-workflow-builder/    # The published npm package
-│   └── workflow-builder-template/ # Full template with 14+ plugins
-├── example/                       # Minimal example consumer app
+│   └── next-workflow-builder/    # The published npm package
+├── examples/
+│   └── demo/                     # Full demo app with 14+ plugins
 ├── docs/                          # Documentation (Nextra)
 ├── pnpm-workspace.yaml
 └── turbo.json
@@ -42,13 +42,13 @@ pnpm build:nwb
 
 This runs TypeScript compilation, fixes ESM imports, and copies static assets.
 
-### Running the example app
+### Running the demo app
 
 ```bash
 pnpm dev:example
 ```
 
-The example app uses `workspace:*` to link the local package, so changes to the package are reflected after rebuilding.
+The demo app (`examples/demo/`) uses `workspace:*` to link the local package, so changes to the package are reflected after rebuilding.
 
 ### Running docs
 
@@ -65,9 +65,8 @@ pnpm test
 ## Package development guidelines
 
 - Only modify code in `packages/next-workflow-builder/`
-- Do not modify `packages/workflow-builder-template/` directly
-- The `example/` app serves as a minimal integration test
-- Run `nwb discover-plugins` in the example directory after changing plugin-related code
+- The `examples/demo/` app serves as a full integration test
+- Run `nwb discover-plugins` in the demo directory after changing plugin-related code
 
 ## Plugin development
 

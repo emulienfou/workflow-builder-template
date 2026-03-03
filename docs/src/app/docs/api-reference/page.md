@@ -6,105 +6,98 @@ The package provides several entry points:
 
 | Import path | Description |
 | --- | --- |
-| `next-workflow-builder` | Server-side: Next.js plugin, API handler, schema, utilities |
-| `next-workflow-builder/components` | React components: LayoutProvider, WorkflowPage, etc. |
-| `next-workflow-builder/hooks` | Custom React hooks |
-| `next-workflow-builder/plugins` | Plugin system: registration, types, step utilities |
-| `next-workflow-builder/styles/globals.css` | Required CSS styles |
-| `next-workflow-builder/lib/api-client` | Client-side API helper |
-| `next-workflow-builder/lib/workflow-store` | Jotai workflow state atoms |
+| `next-workflow-builder` | Next.js plugin: `nextWorkflowBuilder()` config wrapper |
+| `next-workflow-builder/client` | React components: `Layout`, `WorkflowPage`, `WorkflowEditor` |
+| `next-workflow-builder/server` | Server-side: auth, db, schema tables, credentials, metadata, logging |
+| `next-workflow-builder/api` | HTTP route handlers: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS` |
+| `next-workflow-builder/plugins` | Plugin system: registration, registry utilities, types |
+| `next-workflow-builder/server/db/schema` | Drizzle ORM schema (for `drizzle.config.ts`) |
+| `next-workflow-builder/styles.css` | Required CSS styles |
 
 ---
 
-## Server exports (`next-workflow-builder`)
+## Main export (`next-workflow-builder`)
 
 ```ts
-import workflowBuilder, {
-  createWorkflowApiHandler,
-  schema,
-  encrypt,
-  decrypt,
-  generateId,
-  errorResponse,
-  jsonResponse,
-  requireSession,
-  eq, and, or, sql, inArray, notInArray, isNull, isNotNull, desc, asc,
-} from "next-workflow-builder";
+import nextWorkflowBuilder from "next-workflow-builder";
+import type { NextWorkflowBuilderConfig, WithNextWorkflowBuilder } from "next-workflow-builder";
 ```
 
-### `workflowBuilder(config?)`
+### `nextWorkflowBuilder(config?)`
 
 The default export. Returns a function that wraps your Next.js config.
 
 ```ts
-const withWorkflowBuilder = workflowBuilder({ theme: "dark" });
-const nextConfig = withWorkflowBuilder({ /* next config */ });
-```
-
-**Parameters:** `WorkflowConfig` (see [Configuration](/docs/configuration))
-**Returns:** `(nextConfig: NextConfig) => NextConfig`
-
-### `createWorkflowApiHandler(options?)`
-
-Creates a catch-all API route handler for all workflow endpoints.
-
-```ts
-const handler = createWorkflowApiHandler({
-  pluginRoutes: [],
+const withNextWorkflowBuilder = nextWorkflowBuilder({
   authOptions: { /* Better Auth options */ },
+  debug: true,
 });
+const nextConfig = withNextWorkflowBuilder({ /* Next.js config */ });
 ```
 
-**Parameters:** `WorkflowApiHandlerOptions`
-- `pluginRoutes?` - Array of `RouteDefinition` from plugins
-- `authOptions?` - Better Auth configuration overrides
-
-**Returns:** `(req: Request, ctx?: NextContext) => Promise<Response>`
-
-### `schema`
-
-Drizzle ORM schema namespace with all database tables. See [Database](/docs/database).
-
-### `encrypt(text)` / `decrypt(text)`
-
-Encrypt and decrypt integration credentials stored in the database.
-
-### `generateId()`
-
-Generate a unique nanoid-based identifier for database records.
-
-### Drizzle query helpers
-
-Re-exports from `drizzle-orm`: `eq`, `and`, `or`, `sql`, `inArray`, `notInArray`, `isNull`, `isNotNull`, `desc`, `asc`.
+**Parameters:** `NextWorkflowBuilderConfig` (see [Configuration](/docs/configuration))
+**Returns:** `(nextConfig: NextConfig) => NextConfig`
 
 ---
 
-## Plugin exports (`next-workflow-builder/plugins`)
+## API export (`next-workflow-builder/api`)
+
+```ts
+export { GET, POST, PUT, PATCH, DELETE, OPTIONS } from "next-workflow-builder/api";
+```
+
+Re-export these HTTP method handlers in your catch-all API route (`app/api/[[...slug]]/route.ts`).
+They handle all workflow, auth, integration, and API key endpoints.
+
+---
+
+## Server exports (`next-workflow-builder/server`)
 
 ```ts
 import {
-  registerIntegration,
-  registerCodegenTemplates,
-  getCodegenTemplate,
-  registerOutputDisplayConfigs,
-  getOutputDisplayConfig,
+  auth,
+  db,
   fetchCredentials,
+  generateWorkflowMetadata,
   withStepLogging,
+  generateId,
+  encrypt,
+  decrypt,
   getErrorMessage,
   getErrorMessageAsync,
-  registerManagedConnectionProvider,
-} from "next-workflow-builder/plugins";
+  discoverPlugins,
+  // Database tables
+  users,
+  sessions,
+  accounts,
+  verifications,
+  workflows,
+  integrations,
+  workflowExecutions,
+  workflowExecutionLogs,
+  apiKeys,
+} from "next-workflow-builder/server";
+
+import type { StepInput, ResultComponentProps } from "next-workflow-builder/server";
 ```
 
-### `registerIntegration(plugin)`
+### `auth`
 
-Register a plugin with the integration registry.
+The Better Auth instance. Use for session management:
 
 ```ts
-registerIntegration(myPlugin);
+const session = await auth.api.getSession({ headers: request.headers });
 ```
 
-**Parameters:** `IntegrationPlugin` - The plugin definition object
+### `db`
+
+The Drizzle ORM database instance with the full schema:
+
+```ts
+const userWorkflows = await db.query.workflows.findMany({
+  where: eq(workflows.userId, userId),
+});
+```
 
 ### `fetchCredentials(integrationId)`
 
@@ -116,6 +109,14 @@ const credentials = await fetchCredentials(input.integrationId);
 
 **Parameters:** `string` - Integration ID
 **Returns:** `Promise<Record<string, string>>`
+
+### `generateWorkflowMetadata(props)`
+
+Generate dynamic page metadata for workflow pages. Export as `generateMetadata` in your catch-all page:
+
+```ts
+export { generateWorkflowMetadata as generateMetadata } from "next-workflow-builder/server";
+```
 
 ### `withStepLogging(input, fn)`
 
@@ -131,9 +132,64 @@ return withStepLogging(input, () => stepHandler(input, credentials));
 
 **Returns:** `Promise<T>`
 
+### `encrypt(text)` / `decrypt(text)`
+
+Encrypt and decrypt integration credentials stored in the database.
+
+### `generateId()`
+
+Generate a unique nanoid-based identifier for database records.
+
 ### `getErrorMessage(error)` / `getErrorMessageAsync(error)`
 
 Extract a human-readable error message from unknown error types.
+
+### Database tables
+
+All Drizzle ORM table schemas are exported directly: `users`, `sessions`, `accounts`, `verifications`, `workflows`, `integrations`, `workflowExecutions`, `workflowExecutionLogs`, `apiKeys`.
+
+---
+
+## Plugin exports (`next-workflow-builder/plugins`)
+
+```ts
+import {
+  registerIntegration,
+  registerCodegenTemplates,
+  registerOutputDisplayConfigs,
+  getIntegration,
+  getAllIntegrations,
+  getIntegrationTypes,
+  getAllActions,
+  getActionsByCategory,
+  findActionById,
+  getCodegenTemplate,
+  getOutputDisplayConfig,
+  computeActionId,
+  parseActionId,
+  flattenConfigFields,
+  isFieldGroup,
+  getIntegrationLabels,
+  getIntegrationDescriptions,
+  getSortedIntegrationTypes,
+  getAllDependencies,
+  getDependenciesForActions,
+  getAllEnvVars,
+  getPluginEnvVars,
+  getCredentialMapping,
+  generateAIActionPrompts,
+} from "next-workflow-builder/plugins";
+```
+
+### `registerIntegration(plugin)`
+
+Register a plugin with the integration registry.
+
+```ts
+registerIntegration(myPlugin);
+```
+
+**Parameters:** `IntegrationPlugin` - The plugin definition object
 
 ### `registerCodegenTemplates(templates)`
 
@@ -142,6 +198,50 @@ Register code generation templates. Called from auto-generated `lib/codegen-regi
 ### `registerOutputDisplayConfigs(configs)`
 
 Register output display configurations. Called from auto-generated `lib/output-display-configs.ts`.
+
+### Registry query functions
+
+| Function | Returns | Description |
+| --- | --- | --- |
+| `getIntegration(type)` | `IntegrationPlugin \| undefined` | Get a single integration plugin |
+| `getAllIntegrations()` | `IntegrationPlugin[]` | Get all registered integrations |
+| `getIntegrationTypes()` | `string[]` | Get list of all integration type slugs |
+| `getAllActions()` | `ActionWithFullId[]` | Get all actions across integrations |
+| `getActionsByCategory()` | `Record<string, ActionWithFullId[]>` | Get actions grouped by category |
+| `findActionById(id)` | `ActionWithFullId \| undefined` | Find action by full ID or legacy label |
+| `getCodegenTemplate(id)` | `string \| undefined` | Get codegen template for an action |
+| `getOutputDisplayConfig(id)` | `OutputDisplayConfig \| undefined` | Get output display config |
+
+### Utility functions
+
+| Function | Description |
+| --- | --- |
+| `computeActionId(type, slug)` | Compute full action ID (e.g. `"slack/send-message"`) |
+| `parseActionId(id)` | Parse action ID into `{ integration, slug }` |
+| `flattenConfigFields(fields)` | Flatten config field groups into flat array |
+| `isFieldGroup(field)` | Type guard for `ActionConfigFieldGroup` |
+| `getAllDependencies()` | Get all NPM dependencies across integrations |
+| `getDependenciesForActions(ids)` | Get dependencies for specific actions |
+| `getAllEnvVars()` | Get all environment variables across integrations |
+| `getPluginEnvVars(plugin)` | Get env vars for a single plugin |
+| `getCredentialMapping(plugin, config)` | Get credential mapping for a plugin |
+| `generateAIActionPrompts()` | Generate AI prompt section for all actions |
+
+---
+
+## Client export (`next-workflow-builder/client`)
+
+```ts
+import {
+  Layout,
+  WorkflowPage,
+  WorkflowEditor,
+  isAiGatewayManagedKeysEnabled,
+  isAiGatewayManagedKeysEnabledClient,
+} from "next-workflow-builder/client";
+```
+
+See [Components](/docs/components) for detailed component documentation.
 
 ---
 
@@ -158,6 +258,10 @@ Action definition within a plugin.
 ### `ActionConfigField`
 
 Config field definition. Can be `ActionConfigFieldBase` or `ActionConfigFieldGroup`.
+
+### `ActionWithFullId`
+
+A `PluginAction` extended with `id` (full action ID) and `integration` (integration type).
 
 ### `OutputField`
 
@@ -180,49 +284,20 @@ type OutputDisplayConfig =
 
 Base input type for step handlers. Extend this for your step's specific inputs.
 
-### `StepImporter`
+### `NextWorkflowBuilderConfig`
 
 ```ts
-type StepImporter = () => Promise<Record<string, Function>>;
-```
-
-### `WorkflowConfig`
-
-```ts
-type WorkflowConfig = {
-  theme?: "light" | "dark" | "system";
-  apiRoute?: string;
-  autoGenerateApiRoute?: boolean;
-  dbImportPath?: string;
-  authImportPath?: string;
-  ai?: { provider?: "openai" | "anthropic"; model?: string };
+type NextWorkflowBuilderConfig = {
+  debug?: boolean;
+  authOptions?: Record<string, unknown>;
 };
-```
-
-### `RouteDefinition`
-
-```ts
-type RouteDefinition = {
-  path: string;
-  handler: RouteHandler;
-  methods: string[];
-};
-```
-
-### `RouteHandler`
-
-```ts
-type RouteHandler = (
-  route: ParsedRoute,
-  context: HandlerContext
-) => Promise<Response>;
 ```
 
 ---
 
 ## Built-in API routes
 
-All routes are relative to the `apiRoute` base path (default: `/api`).
+All routes are relative to the `/api` base path.
 
 ### Authentication
 
@@ -241,12 +316,11 @@ All routes are relative to the `apiRoute` base path (default: `/api`).
 | GET | `/workflows/[id]` | Get a specific workflow |
 | PATCH | `/workflows/[id]` | Update a workflow |
 | DELETE | `/workflows/[id]` | Delete a workflow |
-| POST | `/workflows/[id]/execute` | Execute a workflow |
+| POST | `/workflow/[id]/execute` | Execute a workflow |
 | POST | `/workflows/[id]/duplicate` | Duplicate a workflow |
 | GET | `/workflows/[id]/code` | Get generated code for a workflow |
 | GET | `/workflows/[id]/download` | Download workflow as a ZIP file |
 | POST | `/workflows/[id]/webhook` | Trigger a workflow via webhook |
-| GET | `/workflows/[id]/cron` | Execute a scheduled workflow |
 | GET/DELETE | `/workflows/[id]/executions` | List or clear workflow executions |
 
 ### Executions
@@ -264,12 +338,6 @@ All routes are relative to the `apiRoute` base path (default: `/api`).
 | GET/PUT/DELETE | `/integrations/[id]` | Get, update, or delete an integration |
 | POST | `/integrations/test` | Test integration credentials (before saving) |
 | POST | `/integrations/[id]/test` | Test a saved integration's credentials |
-
-### AI
-
-| Method | Path | Description |
-| --- | --- | --- |
-| POST | `/ai/generate` | Generate a workflow from a natural language prompt |
 
 ### API Keys
 

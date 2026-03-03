@@ -153,7 +153,7 @@ import {
   getErrorMessage,
   type StepInput,
   withStepLogging,
-} from "next-workflow-builder/plugins";
+} from "next-workflow-builder/server";
 import type { MyServiceCredentials } from "../credentials";
 
 type DoThingResult = {
@@ -285,7 +285,7 @@ export const myServiceWebhook: RouteHandler = async (route, ctx) => {
 };
 ```
 
-Plugin routes are auto-discovered and registered in `lib/route-registry.ts` when you run `nwb discover-plugins`.
+Plugin routes are registered when plugins are imported at runtime.
 
 ## Register and discover
 
@@ -301,7 +301,7 @@ After creating your plugin files:
    npx nwb discover-plugins
    ```
 
-The discovery script imports `plugins/index.ts` to populate the registry, then generates type definitions, step registry, display configs, codegen templates, and route registry.
+The discovery script imports `plugins/index.ts` to populate the registry, then generates type definitions, step registry, display configs, and codegen templates.
 
 ## Complete example
 

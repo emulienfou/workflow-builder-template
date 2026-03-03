@@ -105,7 +105,7 @@ function Features() {
       icon: BlocksIcon,
       title: "Drop-In Integration",
       description:
-        "Add to any Next.js app with a config wrapper, one API route, a layout provider, and a catch-all page. Full workflow platform in under 20 lines of code.",
+        "Add to any Next.js app with a config wrapper, one API route, a layout component, and a catch-all page. Full workflow platform in under 10 lines of code.",
     },
   ];
 
@@ -147,55 +147,44 @@ const SETUP_STEPS = [
     step: "1",
     title: "Configure Next.js",
     file: "next.config.ts",
-    code: `import workflowBuilder from "next-workflow-builder";
+    code: `import type { NextConfig } from "next";
+import nextWorkflowBuilder from "next-workflow-builder";
 
-// Set up WorkflowBuilder with its configuration
-const withWorkflowBuilder = workflowBuilder({
-  // ... Add WorkflowBuilder specific options here
+const withNextWorkflowBuilder = nextWorkflowBuilder({
+  // NextWorkflowBuilder-specific options (e.g. authOptions, debug)
 });
 
-// Export the final Next.js config with workflowBuilder included
-const nextConfig = withWorkflowBuilder({
-  // ... Add regular Next.js options here
-});
-
-export default nextConfig;`,
+export default withNextWorkflowBuilder({
+  // Regular Next.js options
+} satisfies NextConfig);`,
   },
   {
     step: "2",
     title: "Create API route",
-    file: "src/app/api/[...slug]/route.ts",
-    code: `import { createWorkflowApiHandler } from "next-workflow-builder";
-
-const handler = createWorkflowApiHandler({});
-
-export {
-  handler as GET,
-  handler as POST,
-  handler as PUT,
-  handler as DELETE,
-};`,
+    file: "app/api/[[...slug]]/route.ts",
+    code: `export { GET, POST, PUT, PATCH, DELETE, OPTIONS } from "next-workflow-builder/api";`,
   },
   {
     step: "3",
     title: "Add layout and pages",
-    file: "src/app/layout.tsx + src/app/[[...slug]]/page.tsx",
+    file: "app/layout.tsx + app/[[...slug]]/page.tsx",
     code: `// layout.tsx
-import { LayoutProvider } from "@/plugins/index";
-import "next-workflow-builder/styles/globals.css";
+import { Layout } from "next-workflow-builder/client";
+import "next-workflow-builder/styles.css";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <LayoutProvider>{children}</LayoutProvider>
+        <Layout>{children}</Layout>
       </body>
     </html>
   );
 }
 
 // [[...slug]]/page.tsx
-export { WorkflowPage as default } from "next-workflow-builder/components";`,
+export { WorkflowPage as default } from "next-workflow-builder/client";
+export { generateWorkflowMetadata as generateMetadata } from "next-workflow-builder/server";`,
   },
 ];
 

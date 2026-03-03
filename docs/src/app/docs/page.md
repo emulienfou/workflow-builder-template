@@ -20,9 +20,9 @@ Built with Next.js 16, React 19, Drizzle ORM, Better Auth, React Flow, and the V
 
 The package embeds a full workflow builder UI into your Next.js app through a few integration points:
 
-1. **Next.js plugin** wraps your config to enable transpilation and environment setup
-2. **Catch-all API route** handles all workflow CRUD, execution, auth, and integration endpoints
-3. **Layout provider** wraps your app with theme, state management, and auth context
+1. **Next.js plugin** wraps your config to enable transpilation, virtual module resolution, and plugin discovery
+2. **Catch-all API route** re-exports HTTP handlers from `next-workflow-builder/api` for all workflow CRUD, execution, auth, and integration endpoints
+3. **Layout component** wraps your app with theme, state management, auth context, and the persistent workflow canvas
 4. **Catch-all page** renders the workflow editor, homepage, and workflow list
 
 Plugins extend the builder with new integrations (e.g. Slack, GitHub, Stripe). Each plugin defines its
@@ -43,4 +43,4 @@ connection credentials, available actions, step handlers, and optionally custom 
 - React 19+
 - TypeScript 5+
 - PostgreSQL database
-- Node.js 18+
+- Node.js 22+

@@ -9,8 +9,10 @@ next-workflow-builder is designed to work seamlessly with Vercel deployments.
 In your Vercel project settings, add:
 
 ```env
-NEXT_WORKFLOW_BUILDER_DATABASE_URL=postgres://user:password@host:5432/workflow
+DATABASE_URL=postgres://user:password@host:5432/workflow
+BETTER_AUTH_SECRET=your-secret-key
 BETTER_AUTH_URL=https://your-domain.com
+INTEGRATION_ENCRYPTION_KEY=your-encryption-key
 ```
 
 For preview deployments, `BETTER_AUTH_URL` is not required. The package automatically uses the `VERCEL_URL`
@@ -50,7 +52,7 @@ https://your-domain.com/api/auth/callback/{provider}
 
 ### Requirements
 
-- Node.js 18+
+- Node.js 22+
 - PostgreSQL 14+
 - A process manager (PM2, systemd, Docker, etc.)
 
@@ -67,8 +69,10 @@ next build
 2. Set environment variables:
 
 ```env
-NEXT_WORKFLOW_BUILDER_DATABASE_URL=postgres://user:password@localhost:5432/workflow
+DATABASE_URL=postgres://user:password@localhost:5432/workflow
+BETTER_AUTH_SECRET=your-secret-key
 BETTER_AUTH_URL=https://your-domain.com
+INTEGRATION_ENCRYPTION_KEY=your-encryption-key
 NODE_ENV=production
 ```
 
@@ -125,4 +129,4 @@ The package works with any PostgreSQL provider:
 - **Railway** - Simple managed Postgres
 - **Self-hosted** - Any PostgreSQL 14+ instance
 
-Set the connection string in `NEXT_WORKFLOW_BUILDER_DATABASE_URL`.
+Set the connection string in `DATABASE_URL`.

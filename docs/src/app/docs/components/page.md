@@ -1,27 +1,24 @@
 # Components
 
-All React components are exported from `next-workflow-builder/components`.
+Client-side components are exported from `next-workflow-builder/client`.
 
 ```ts
 import {
-  LayoutProvider,
+  Layout,
   WorkflowPage,
   WorkflowEditor,
-  HomePage,
-  WorkflowsRedirect,
-  PersistentCanvas,
-} from "next-workflow-builder/components";
+} from "next-workflow-builder/client";
 ```
 
-## LayoutProvider
+## Layout
 
-The root provider component. Wraps your app with theme support (via `next-themes`), Jotai state management,
+The root wrapper component. Provides theme support (via `next-themes`), Jotai state management,
 authentication context, and the persistent workflow canvas.
 
 ```tsx
-// src/app/layout.tsx
-import { LayoutProvider } from "@/plugins/index";
-import "next-workflow-builder/styles/globals.css";
+// app/layout.tsx
+import { Layout } from "next-workflow-builder/client";
+import "next-workflow-builder/styles.css";
 
 export default function RootLayout({
   children,
@@ -31,23 +28,36 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <LayoutProvider>{children}</LayoutProvider>
+        <Layout>{children}</Layout>
       </body>
     </html>
   );
 }
 ```
 
-**Important:** You must also import the global CSS stylesheet (`next-workflow-builder/styles/globals.css`) in your
+**Important:** You must also import the stylesheet (`next-workflow-builder/styles.css`) in your
 layout for the UI to render correctly.
+
+### Social auth providers
+
+If you've configured social auth providers in your `next.config.ts`, pass them to the `Layout` component:
+
+```tsx
+<Layout social={{ providers: ["vercel"] }}>
+  {children}
+</Layout>
+```
+
+The `Layout` component accepts all props from Better Auth UI's `AuthUIProviderProps` (except `authClient`, which is provided automatically).
 
 ## WorkflowPage
 
 A catch-all page component that handles routing for the workflow builder:
 
 ```tsx
-// src/app/[[...slug]]/page.tsx
-export { WorkflowPage as default } from "next-workflow-builder/components";
+// app/[[...slug]]/page.tsx
+export { WorkflowPage as default } from "next-workflow-builder/client";
+export { generateWorkflowMetadata as generateMetadata } from "next-workflow-builder/server";
 ```
 
 Routes handled:
@@ -58,61 +68,13 @@ Routes handled:
 | `/workflows` | `WorkflowsRedirect` | Redirects to the most recently updated workflow |
 | `/workflows/[id]` | `WorkflowEditor` | Full workflow editor for a specific workflow |
 
-## HomePage
-
-The landing page component. Displays a placeholder canvas for creating new workflows.
-
-```tsx
-import { HomePage } from "next-workflow-builder/components";
-```
+The `generateWorkflowMetadata` export from `next-workflow-builder/server` provides dynamic metadata
+(title, description, Open Graph) for workflow pages.
 
 ## WorkflowEditor
 
 The main workflow editor component with the drag-and-drop canvas, node configuration panel, toolbar, and execution panel.
 
 ```tsx
-import { WorkflowEditor } from "next-workflow-builder/components";
+import { WorkflowEditor } from "next-workflow-builder/client";
 ```
-
-## WorkflowsRedirect
-
-A component that fetches the most recently updated workflow and redirects to its editor page.
-
-```tsx
-import { WorkflowsRedirect } from "next-workflow-builder/components";
-```
-
-## PersistentCanvas
-
-The React Flow canvas component that persists across navigation. Manages nodes, edges, and the visual workflow graph.
-
-```tsx
-import { PersistentCanvas } from "next-workflow-builder/components";
-```
-
-## Client utilities
-
-### API client
-
-```ts
-import { api } from "next-workflow-builder/lib/api-client";
-```
-
-The `api` object provides typed methods for all workflow API endpoints.
-
-### Workflow store
-
-```ts
-import { nodesAtom, edgesAtom } from "next-workflow-builder/lib/workflow-store";
-```
-
-Jotai atoms for the workflow editor state. Use these to read or manipulate the current workflow's nodes and edges
-from custom components.
-
-## Hooks
-
-```ts
-import { /* hooks */ } from "next-workflow-builder/hooks";
-```
-
-Custom React hooks for interacting with the workflow builder state, authentication, and integrations.

@@ -14,12 +14,13 @@ Out of the box, the package configures Better Auth with:
 
 ## Customizing auth
 
-Override auth options in `createWorkflowApiHandler`:
+Auth options are configured in the `nextWorkflowBuilder()` call in your `next.config.ts`:
 
 ```ts
-import { createWorkflowApiHandler } from "next-workflow-builder";
+// next.config.ts
+import nextWorkflowBuilder from "next-workflow-builder";
 
-const handler = createWorkflowApiHandler({
+const withNextWorkflowBuilder = nextWorkflowBuilder({
   authOptions: {
     emailAndPassword: {
       enabled: true,
@@ -37,6 +38,22 @@ const handler = createWorkflowApiHandler({
     },
   },
 });
+
+export default withNextWorkflowBuilder({});
+```
+
+The `authOptions` object is serialized and injected at build time, so all values must be JSON-serializable.
+
+### Displaying social login buttons
+
+When using social providers, pass the provider names to the `Layout` component in your `app/layout.tsx`:
+
+```tsx
+import { Layout } from "next-workflow-builder/client";
+
+<Layout social={{ providers: ["github", "google"] }}>
+  {children}
+</Layout>
 ```
 
 ### Disabling email/password auth
@@ -44,7 +61,7 @@ const handler = createWorkflowApiHandler({
 To use only social providers:
 
 ```ts
-const handler = createWorkflowApiHandler({
+const withNextWorkflowBuilder = nextWorkflowBuilder({
   authOptions: {
     emailAndPassword: {
       enabled: false,
@@ -53,7 +70,6 @@ const handler = createWorkflowApiHandler({
       vercel: {
         clientId: process.env.VERCEL_CLIENT_ID || "",
         clientSecret: process.env.VERCEL_CLIENT_SECRET || "",
-        scope: ["openid", "email", "profile"],
       },
     },
   },
@@ -93,12 +109,13 @@ This includes sign in, sign up, sign out, session management, and OAuth callback
 
 ## Environment variables
 
-| Variable | Description |
-| --- | --- |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks (e.g. `http://localhost:3000`) |
-| `GITHUB_CLIENT_ID` | GitHub OAuth app client ID |
-| `GITHUB_CLIENT_SECRET` | GitHub OAuth app client secret |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
-| `VERCEL_CLIENT_ID` | Vercel OAuth client ID |
-| `VERCEL_CLIENT_SECRET` | Vercel OAuth client secret |
+| Variable | Required | Description |
+| --- | --- | --- |
+| `BETTER_AUTH_SECRET` | Yes | Secret key for session encryption |
+| `BETTER_AUTH_URL` | Yes | Base URL for auth callbacks (e.g. `http://localhost:3000`) |
+| `GITHUB_CLIENT_ID` | No | GitHub OAuth app client ID |
+| `GITHUB_CLIENT_SECRET` | No | GitHub OAuth app client secret |
+| `GOOGLE_CLIENT_ID` | No | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | No | Google OAuth client secret |
+| `VERCEL_CLIENT_ID` | No | Vercel OAuth client ID |
+| `VERCEL_CLIENT_SECRET` | No | Vercel OAuth client secret |

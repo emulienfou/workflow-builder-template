@@ -5,54 +5,75 @@
 ```
 packages/next-workflow-builder/
 └── src/
-    ├── client/                 # React components and hooks
+    ├── next/                       # Next.js plugin configuration
+    │   ├── index.ts                # Plugin entry (nextWorkflowBuilder fn)
+    │   ├── types.ts                # Config types
+    │   └── schema.ts               # Config schema validation (Zod)
+    │
+    ├── client/                     # React components and hooks
+    │   ├── index.ts                # Client exports (WorkflowPage, Layout, etc.)
     │   ├── components/
-    │   │   ├── ai-elements/    # Canvas, node, edge, controls
-    │   │   ├── auth/           # Auth dialog
-    │   │   ├── overlays/       # Connection, configuration, settings
-    │   │   ├── pages/          # HomePage, WorkflowPage, WorkflowsRedirect
-    │   │   ├── settings/       # Account and integrations manager
-    │   │   ├── ui/             # Radix UI primitives (button, dialog, etc.)
-    │   │   ├── workflow/       # Editor, canvas, nodes, toolbar
-    │   │   └── index.ts
-    │   └── hooks/              # Custom React hooks
+    │   │   ├── layout.tsx          # Layout wrapper component
+    │   │   ├── pages/              # WorkflowPage, HomePage, WorkflowsRedirect
+    │   │   ├── workflow/           # Editor, canvas, nodes, toolbar
+    │   │   ├── overlays/           # Connection, configuration, settings
+    │   │   ├── providers/          # LayoutProvider, context providers
+    │   │   ├── settings/           # Account and integrations manager
+    │   │   └── ui/                 # Radix UI primitives (button, dialog, etc.)
+    │   ├── hooks/                  # Custom React hooks
+    │   └── lib/
+    │       ├── api-client.ts       # Client-side API helper
+    │       ├── auth-client.ts      # Auth client setup
+    │       ├── workflow-codegen.ts  # Code generation engine
+    │       ├── workflow-store.ts    # Workflow Jotai state
+    │       ├── ai-gateway/         # AI Gateway configuration
+    │       └── codegen-templates/  # Code generation templates
     │
-    ├── server/                 # Server-side code
-    │   ├── api/
-    │   │   ├── handlers/       # Route handler implementations
-    │   │   ├── routes.ts       # Route definitions
-    │   │   ├── workflows.ts    # API handler factory
-    │   │   └── handler-utils.ts
+    ├── server/                     # Server-side code
+    │   ├── index.ts                # Server exports
+    │   ├── types.ts                # Action & integration types
+    │   ├── constants.ts            # Path & config constants
+    │   ├── auth/
+    │   │   ├── index.ts            # Better Auth instance
+    │   │   ├── config-store.ts     # Auth config management
+    │   │   └── resolve-user.ts     # User resolution utilities
     │   ├── db/
-    │   │   ├── schema.ts       # Drizzle ORM schema
-    │   │   └── migrate.ts
-    │   ├── plugin.ts           # Next.js plugin configuration
-    │   └── index.ts
+    │   │   ├── index.ts            # Drizzle DB instance
+    │   │   ├── schema.ts           # All database tables & types
+    │   │   └── integrations.ts     # Encryption/decryption
+    │   ├── api/
+    │   │   ├── index.ts            # Main router (GET, POST, etc. exports)
+    │   │   ├── workflows.ts        # Workflow CRUD & execution handlers
+    │   │   ├── integrations.ts     # Integration CRUD handlers
+    │   │   ├── api-keys.ts         # API key management
+    │   │   ├── users.ts            # User profile endpoints
+    │   │   ├── auth.ts             # Auth passthrough to Better Auth
+    │   │   └── utils.ts            # Helper utilities
+    │   └── lib/
+    │       ├── metadata.ts         # Workflow metadata generation
+    │       ├── credential-fetcher.ts
+    │       ├── workflow-logging.ts
+    │       ├── workflow-executor.workflow.ts
+    │       ├── condition-validator.ts
+    │       ├── utils/              # ID generation, redaction, etc.
+    │       └── steps/              # Built-in step implementations
+    │           ├── http-request.ts
+    │           ├── database-query.ts
+    │           ├── condition.ts
+    │           ├── trigger.ts
+    │           └── step-handler.ts # withStepLogging, StepInput
     │
-    ├── lib/                    # Shared utilities
-    │   ├── codegen-templates/  # Code generation templates
-    │   ├── db/                 # Database utilities + schema
-    │   ├── steps/              # Built-in step handlers
-    │   ├── types/              # TypeScript type definitions
-    │   ├── atoms/              # Jotai state atoms
-    │   ├── api-client.ts       # Client-side API helper
-    │   ├── workflow-store.ts   # Workflow Jotai state
-    │   ├── workflow-codegen.ts # Code generation engine
-    │   └── credential-fetcher.ts
+    ├── plugins/                    # Plugin system
+    │   ├── index.ts                # Registry functions (20+ utilities)
+    │   ├── types.ts                # Plugin type definitions
+    │   ├── discover.ts             # Plugin discovery & codegen
+    │   └── _template/              # Template plugin boilerplate
     │
-    ├── plugins/                # Plugin system
-    │   ├── index.ts            # Public exports
-    │   ├── registry.ts         # Integration registry
-    │   └── legacy-mappings.ts
-    │
-    ├── scripts/                # CLI tools
-    │   ├── nwb.ts              # CLI entry point
-    │   ├── discover-plugins.ts # Plugin auto-discovery
-    │   ├── create-plugin.ts    # Plugin scaffolding
-    │   └── migrate-prod.ts     # Production migrations
-    │
-    └── styles/
-        └── globals.css
+    └── scripts/                    # CLI tools
+        ├── nwb.ts                  # CLI entry point
+        ├── discover-plugins.ts     # Plugin auto-discovery
+        ├── create-plugin.ts        # Plugin scaffolding
+        └── migrate-prod.ts         # Production migrations
 ```
 
 ## Consumer app structure
@@ -61,23 +82,22 @@ A typical consumer app using next-workflow-builder:
 
 ```
 my-app/
-├── src/
-│   ├── app/
-│   │   ├── layout.tsx              # Root layout with LayoutProvider
-│   │   ├── [[...slug]]/page.tsx    # Catch-all workflow pages
-│   │   └── api/[...slug]/route.ts  # Catch-all API handler
-│   └── lib/                        # (auto-generated)
-│       ├── types/integration.ts
-│       ├── step-registry.ts
-│       ├── codegen-registry.ts
-│       ├── output-display-configs.ts
-│       └── route-registry.ts
+├── app/
+│   ├── layout.tsx                    # Root layout with Layout component
+│   ├── [[...slug]]/page.tsx          # Catch-all workflow pages
+│   └── api/[[...slug]]/route.ts      # Catch-all API handler
+├── lib/                              # (auto-generated by nwb discover-plugins)
+│   ├── types/integration.ts
+│   ├── step-registry.ts
+│   ├── codegen-registry.ts
+│   └── output-display-configs.ts
 ├── plugins/
-│   ├── index.ts                    # (user-managed, scaffolded once)
+│   ├── index.ts                      # (user-managed, scaffolded once)
 │   ├── slack/
 │   ├── github/
 │   └── stripe/
-└── next.config.ts
+├── next.config.ts
+└── drizzle.config.ts                 # Drizzle ORM config for migrations
 ```
 
 ## Plugin registry
@@ -94,45 +114,45 @@ The plugin system is built around a central `Map<IntegrationType, IntegrationPlu
    - **Type union** ensures type safety for integration slugs
    - **Display configs** and **codegen templates** are registered at import time
 
-### ESM dual module instance
+### Virtual module resolution
 
-A key architectural detail: consumer plugins import from `"next-workflow-builder/plugins"` (the package specifier),
-while the discover script imports from a relative path. Node.js ESM caches modules by resolved URL, which can create
-two separate module instances with separate registries.
+The Next.js plugin sets up virtual module aliases so the package can import consumer-side files:
 
-The discover script handles this by explicitly re-registering each plugin's `default` export with the local registry
-instance after import.
+- `virtual:workflow-builder-plugins` → resolves to `./plugins/index.ts`
+- `virtual:workflow-builder-step-registry` → resolves to `./lib/step-registry.ts`
+
+These aliases are configured for both Turbopack (`resolveAlias`) and webpack (`resolve.alias`).
 
 ## API routing
 
-The API handler uses a custom route matcher instead of Next.js file-based routing. All API requests go through a single
-`/api/[...slug]/route.ts` catch-all handler.
+The API handler uses a segment-based router instead of Next.js file-based routing. All API requests go through a single
+`app/api/[[...slug]]/route.ts` catch-all handler that re-exports HTTP method handlers from `next-workflow-builder/api`.
 
-Routes are defined declaratively in `routes.ts`:
+The router matches URL path segments to handlers:
 
 ```ts
-const routes: RouteDefinition[] = [
-  { path: "/workflows", handler: listWorkflows, methods: ["GET"] },
-  { path: "/workflows/[workflowId]", handler: workflowCrud, methods: ["GET", "PATCH", "DELETE"] },
+const segments = extractPath(request);
+const [s0, s1, s2, s3] = segments;
+
+if (s0 === "workflows") {
+  if (s1 === undefined && method === "GET") return handleGetWorkflows(request);
   // ...
-];
+}
 ```
 
-The route matcher supports:
+The router supports:
 - Exact segments (`/workflows/create`)
 - Dynamic segments (`/workflows/[workflowId]`)
-- Catch-all segments (`/auth/[...all]`)
-
-Plugin routes are merged with core routes at handler creation time.
+- Catch-all segments (`/auth/*`)
 
 ## State management
 
 Client-side state is managed with [Jotai](https://jotai.org/):
 
 - **Workflow store** (`workflow-store.ts`) - Nodes, edges, and workflow metadata atoms
-- **Atoms directory** (`atoms/`) - Additional state for UI, auth, integrations
+- **Additional state** - UI state, auth, integrations
 
-The `LayoutProvider` wraps the app in a Jotai `Provider` to make atoms available throughout the component tree.
+The `Layout` component wraps the app in a Jotai `Provider` to make atoms available throughout the component tree.
 
 ## Code generation
 
@@ -160,4 +180,5 @@ Templates can be:
 | Auth | Better Auth |
 | AI | Vercel AI SDK |
 | Animations | Motion (Framer Motion) |
+| Validation | Zod |
 | Build | TypeScript, Turborepo |
