@@ -4,7 +4,7 @@ import type { Config } from "drizzle-kit";
 config();
 
 export default {
-  schema: "./lib/db/schema.ts",
+  schema: "next-workflow-builder/server/db/schema",
   out: "./drizzle",
   dialect: "postgresql",
   dbCredentials: {

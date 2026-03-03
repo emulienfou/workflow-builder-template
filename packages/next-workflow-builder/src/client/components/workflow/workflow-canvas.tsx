@@ -564,7 +564,7 @@ export function WorkflowCanvas() {
       >
         <Panel
           className="workflow-controls-panel border-none bg-transparent p-0"
-          position="bottom-left"
+          position="bottom-right"
         >
           <Controls />
         </Panel>

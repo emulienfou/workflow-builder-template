@@ -31,7 +31,11 @@ const WorkflowPage = () => {
 
   // /workflows/[workflowId] → Workflow editor
   if (slug[0] === "workflows" && slug.length === 2) {
-    return <div className="pointer-events-none relative z-10"><WorkflowEditor workflowId={ slug[1] }/></div>;
+    return (
+      <div className="pointer-events-none relative z-10">
+        <WorkflowEditor workflowId={ slug[1] }/>
+      </div>
+    );
   }
 
   return null;

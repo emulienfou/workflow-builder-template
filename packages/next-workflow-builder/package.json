@@ -36,6 +36,11 @@
       "types": "./dist/server/api/index.d.ts",
       "import": "./dist/server/api/index.js",
       "require": "./dist/server/api/index.js"
+    },
+    "./server/db/schema": {
+      "types": "./dist/server/db/schema.d.ts",
+      "import": "./dist/server/db/schema.js",
+      "require": "./dist/server/db/schema.js"
     }
   },
   "bin": {

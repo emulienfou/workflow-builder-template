@@ -1,7 +1,7 @@
 import { relations } from "drizzle-orm";
 import { boolean, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { generateId } from "../lib/utils/id";
-import type { IntegrationType } from "../types";
+import type { IntegrationType } from "../../plugins/types";
 
 // Better Auth tables
 export const users = pgTable("users", {
