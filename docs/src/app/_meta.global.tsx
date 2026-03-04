@@ -27,6 +27,17 @@ const meta = {
       plugins: {
         title: "Plugins",
       },
+      "built-in-plugins": {
+        title: "Built-in Plugins",
+        items: {
+          index: "Overview",
+          "http-request": { title: "HTTP Request" },
+          condition: { title: "Condition" },
+          loop: { title: "Loop" },
+          merge: { title: "Merge" },
+          "database-query": { title: "Database Query" },
+        },
+      },
       "creating-plugins": {
         title: "Creating Plugins",
       },
