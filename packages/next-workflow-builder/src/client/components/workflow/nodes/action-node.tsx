@@ -10,6 +10,7 @@ import { conditionAction } from "../../../../plugins/condition";
 import { databaseQueryAction } from "../../../../plugins/database-query";
 import { httpRequestAction } from "../../../../plugins/http-request";
 import { loopAction } from "../../../../plugins/loop";
+import { mergeAction } from "../../../../plugins/merge";
 import { integrationIdsAtom, integrationsLoadedAtom } from "../../../lib/integrations-store";
 import { cn } from "../../../lib/utils";
 import {
@@ -122,6 +123,8 @@ const getProviderLogo = (actionType: string) => {
       return conditionAction.icon;
     case "Loop":
       return loopAction.icon;
+    case "Merge":
+      return mergeAction.icon;
     default:
       // Not a system action, continue to check plugin registry
       break;

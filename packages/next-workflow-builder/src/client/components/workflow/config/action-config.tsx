@@ -8,6 +8,7 @@ import { ConditionFields } from "../../../../plugins/condition/fields";
 import { DatabaseQueryFields } from "../../../../plugins/database-query/fields";
 import { HttpRequestFields } from "../../../../plugins/http-request/fields";
 import { LoopFields } from "../../../../plugins/loop/fields";
+import { MergeFields } from "../../../../plugins/merge/fields";
 import type { IntegrationType } from "../../../../plugins/types";
 import { aiGatewayStatusAtom } from "../../../lib/ai-gateway/state";
 import { integrationsAtom, integrationsVersionAtom } from "../../../lib/integrations-store";
@@ -74,6 +75,14 @@ function SystemActionFields({
           onUpdateConfig={ onUpdateConfig }
         />
       );
+    case "Merge":
+      return (
+        <MergeFields
+          config={ config }
+          disabled={ disabled }
+          onUpdateConfig={ onUpdateConfig }
+        />
+      );
     default:
       return null;
   }
@@ -85,6 +94,7 @@ const SYSTEM_ACTIONS: Array<{ id: string; label: string }> = [
   { id: "Database Query", label: "Database Query" },
   { id: "Condition", label: "Condition" },
   { id: "Loop", label: "Loop" },
+  { id: "Merge", label: "Merge" },
 ];
 
 const SYSTEM_ACTION_IDS = SYSTEM_ACTIONS.map((a) => a.id);
