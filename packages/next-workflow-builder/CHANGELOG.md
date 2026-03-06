@@ -1,6 +1,16 @@
 # next-workflow-builder
 
-## 0.4.1
+## 0.4.3
+
+### Features
+
+- Display Node ID in node details panel
+
+### Bug Fixes
+
+- Fix Loop step failing when `items` arrives as a JSON string from template processing instead of an array
+
+## 0.4.2
 
 ### Features
 
