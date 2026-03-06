@@ -46,6 +46,10 @@ const nextWorkflowBuilder = (
     process.env.__NWB_AUTH_OPTIONS = JSON.stringify(loaderOptions.authOptions);
   }
 
+  if (loaderOptions.databaseUrl) {
+    process.env.__NWB_DATABASE_URL = loaderOptions.databaseUrl;
+  }
+
   // Discover plugins
   discoverPlugins();
 

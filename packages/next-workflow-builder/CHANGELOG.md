@@ -1,5 +1,11 @@
 # next-workflow-builder
 
+## 0.4.1
+
+### Features
+
+- Add optional `databaseUrl` config option to `nextWorkflowBuilder()` for overriding the database connection URL instead of relying on `process.env.DATABASE_URL`
+
 ## 0.4.0
 
 ### Bug Fixes

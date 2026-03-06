@@ -12,6 +12,16 @@ DATABASE_URL=postgres://user:password@localhost:5432/workflow
 
 The package connects automatically using this URL. No manual database setup code is required.
 
+Alternatively, you can pass the connection URL directly in your `next.config.ts`:
+
+```ts
+const withNextWorkflowBuilder = nextWorkflowBuilder({
+  databaseUrl: process.env.DATABASE_URL,
+});
+```
+
+When `databaseUrl` is provided, it takes priority over the `DATABASE_URL` environment variable.
+
 ## Drizzle configuration
 
 For local migrations and Drizzle Kit commands, create a `drizzle.config.ts` that references the package schema:

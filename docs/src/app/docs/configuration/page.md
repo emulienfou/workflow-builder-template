@@ -9,6 +9,7 @@ import nextWorkflowBuilder from "next-workflow-builder";
 
 const withNextWorkflowBuilder = nextWorkflowBuilder({
   debug: false,
+  databaseUrl: process.env.DATABASE_URL,
   authOptions: {
     socialProviders: {
       vercel: {
@@ -25,6 +26,7 @@ const withNextWorkflowBuilder = nextWorkflowBuilder({
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `debug` | `boolean` | `false` | Enable debug logging |
+| `databaseUrl` | `string` | `undefined` | Override the PostgreSQL connection URL. Falls back to `process.env.DATABASE_URL` when not set. |
 | `authOptions` | `Record<string, unknown>` | `undefined` | Better Auth configuration options (must be JSON-serializable) |
 
 The `authOptions` object is serialized and injected as an environment variable at build time, so all values must be
