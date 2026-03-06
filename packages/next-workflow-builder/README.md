@@ -160,6 +160,10 @@ For full documentation including configuration, authentication, database setup, 
 - [Database](https://next-workflow-builder.vercel.app/docs/database)
 - [Deployment](https://next-workflow-builder.vercel.app/docs/deployment)
 
+## Changelog
+
+Full [Changelog](CHANGELOG.md) file
+
 ## License
 
 Apache-2.0
