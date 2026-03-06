@@ -5,7 +5,7 @@
  */
 import "server-only";
 
-import { type StepInput, withStepLogging } from "../../server/lib/steps/step-handler";
+import { type StepInput, withStepLogging } from "../../server";
 
 export type LoopInput = StepInput & {
   /** The array to iterate over */
@@ -40,7 +40,8 @@ export type LoopResult = {
 };
 
 function evaluateLoop(input: LoopInput): LoopResult {
-  const items = Array.isArray(input.items) ? input.items : [];
+  const rawItems = typeof input.items === "string" ? JSON.parse(input.items) : input.items;
+  const items = Array.isArray(rawItems) ? rawItems : [];
   const batchSize = Math.max(1, input.batchSize || 1);
   const currentBatchIndex = input.currentBatchIndex ?? 0;
   const totalItems = items.length;
