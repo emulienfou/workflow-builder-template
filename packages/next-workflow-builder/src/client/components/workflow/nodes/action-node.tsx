@@ -5,7 +5,7 @@ import { useAtomValue } from "jotai";
 import { AlertTriangle, Check, Code, EyeOff, XCircle, Zap } from "lucide-react";
 import Image from "next/image";
 import { memo, useState } from "react";
-import { findActionById, getIntegration } from "../../../../plugins";
+import { findActionById, getIntegration, integrationRequiresCredentials } from "../../../../plugins";
 import { conditionAction } from "../../../../plugins/condition";
 import { databaseQueryAction } from "../../../../plugins/database-query";
 import { httpRequestAction } from "../../../../plugins/http-request";
@@ -107,9 +107,10 @@ const requiresIntegration = (actionType: string): boolean => {
     return true;
   }
 
-  // Plugin actions always require integration
+  // Plugin actions only require integration if the plugin has credential fields
   const action = findActionById(actionType);
-  return action !== undefined;
+  if (!action) return false;
+  return integrationRequiresCredentials(action.integration);
 };
 
 // Helper to get provider logo for action type

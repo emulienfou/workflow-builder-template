@@ -3,7 +3,12 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { HelpCircle, Plus, Settings } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { findActionById, getActionsByCategory, getAllIntegrations } from "../../../../plugins";
+import {
+  findActionById,
+  getActionsByCategory,
+  getAllIntegrations,
+  integrationRequiresCredentials,
+} from "../../../../plugins";
 import { ConditionFields } from "../../../../plugins/condition/fields";
 import { DatabaseQueryFields } from "../../../../plugins/database-query/fields";
 import { HttpRequestFields } from "../../../../plugins/http-request/fields";
@@ -227,9 +232,11 @@ export function ActionConfig({
       return SYSTEM_ACTION_INTEGRATIONS[actionType];
     }
 
-    // Check plugin actions
+    // Check plugin actions — only require connection if plugin has credential fields
     const action = findActionById(actionType);
-    return action?.integration as IntegrationType | undefined;
+    const type = action?.integration as IntegrationType | undefined;
+    if (type && !integrationRequiresCredentials(type)) return undefined;
+    return type;
   }, [actionType]);
 
   // Check if AI Gateway managed keys should be offered (user can have multiple for different teams)

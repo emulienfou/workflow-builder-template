@@ -395,6 +395,17 @@ export function generateAIActionPrompts(): string {
   return lines.join("\n");
 }
 
+/**
+ * Check if an integration type requires credentials (has formFields).
+ * Plugins with no formFields (e.g. facebook-event-scraper) don't need a connection.
+ */
+export function integrationRequiresCredentials(
+  type: IntegrationType
+): boolean {
+  const plugin = integrationRegistry.get(type);
+  return !!plugin && plugin.formFields.length > 0;
+}
+
 export type {
   ActionConfigField,
   ActionConfigFieldBase,

@@ -22,19 +22,16 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "../ui/button";
-import { ButtonGroup } from "../ui/button-group";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+  findActionById,
+  flattenConfigFields,
+  getIntegrationLabels,
+  integrationRequiresCredentials,
+} from "../../../plugins";
+import type { IntegrationType } from "../../../plugins/types";
 import { api } from "../../lib/api-client";
 import { authClient, useSession } from "../../lib/auth-client";
 import { integrationsAtom } from "../../lib/integrations-store";
-import type { IntegrationType } from "../../../plugins/types";
 import {
   addNodeAtom,
   canRedoAtom,
@@ -64,11 +61,6 @@ import {
   type WorkflowNode,
   type WorkflowVisibility,
 } from "../../lib/workflow-store";
-import {
-  findActionById,
-  flattenConfigFields,
-  getIntegrationLabels,
-} from "../../../plugins";
 import { Panel } from "../ai-elements/panel";
 import { DeployButton } from "../deploy-button";
 import { GitHubStarsButton } from "../github-stars-button";
@@ -78,6 +70,15 @@ import { ExportWorkflowOverlay } from "../overlays/export-workflow-overlay";
 import { MakePublicOverlay } from "../overlays/make-public-overlay";
 import { useOverlay } from "../overlays/overlay-provider";
 import { WorkflowIssuesOverlay } from "../overlays/workflow-issues-overlay";
+import { Button } from "../ui/button";
+import { ButtonGroup } from "../ui/button-group";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../ui/dropdown-menu";
 import { WorkflowIcon } from "../ui/workflow-icon";
 import { UserMenu } from "../workflows/user-menu";
 
@@ -92,7 +93,7 @@ function updateNodesStatus(
     id: string;
     data: { status?: "idle" | "running" | "success" | "error" };
   }) => void,
-  status: "idle" | "running" | "success" | "error"
+  status: "idle" | "running" | "success" | "error",
 ) {
   for (const node of nodes) {
     updateNodeData({ id: node.id, data: { status } });
@@ -129,7 +130,7 @@ type BrokenTemplateReferenceInfo = {
 
 // Extract template variables from a string and check if they reference existing nodes
 function extractTemplateReferences(
-  value: unknown
+  value: unknown,
 ): Array<{ nodeId: string; displayText: string }> {
   if (typeof value !== "string") {
     return [];
@@ -147,13 +148,13 @@ function extractTemplateReferences(
 // Recursively extract all template references from a config object
 function extractAllTemplateReferences(
   config: Record<string, unknown>,
-  prefix = ""
+  prefix = "",
 ): Array<{ field: string; nodeId: string; displayText: string }> {
   const results: Array<{ field: string; nodeId: string; displayText: string }> =
     [];
 
   for (const [key, value] of Object.entries(config)) {
-    const fieldPath = prefix ? `${prefix}.${key}` : key;
+    const fieldPath = prefix ? `${ prefix }.${ key }` : key;
 
     if (typeof value === "string") {
       const refs = extractTemplateReferences(value);
@@ -168,8 +169,8 @@ function extractAllTemplateReferences(
       results.push(
         ...extractAllTemplateReferences(
           value as Record<string, unknown>,
-          fieldPath
-        )
+          fieldPath,
+        ),
       );
     }
   }
@@ -179,7 +180,7 @@ function extractAllTemplateReferences(
 
 // Get broken template references for workflow nodes
 function getBrokenTemplateReferences(
-  nodes: WorkflowNode[]
+  nodes: WorkflowNode[],
 ): BrokenTemplateReferenceInfo[] {
   const nodeIds = new Set(nodes.map((n) => n.id));
   const brokenByNode: BrokenTemplateReferenceInfo[] = [];
@@ -248,7 +249,7 @@ function isFieldEmpty(value: unknown): boolean {
 // Check if a conditional field should be shown based on current config
 function shouldShowField(
   field: { showWhen?: { field: string; equals: string } },
-  config: Record<string, unknown>
+  config: Record<string, unknown>,
 ): boolean {
   if (!field.showWhen) {
     return true;
@@ -258,7 +259,7 @@ function shouldShowField(
 
 // Get missing required fields for a single node
 function getNodeMissingFields(
-  node: WorkflowNode
+  node: WorkflowNode,
 ): MissingRequiredFieldInfo | null {
   if (node.data.enabled === false) {
     return null;
@@ -283,7 +284,7 @@ function getNodeMissingFields(
       (field) =>
         field.required &&
         shouldShowField(field, config || {}) &&
-        isFieldEmpty(config?.[field.key])
+        isFieldEmpty(config?.[field.key]),
     )
     .map((field) => ({
       fieldKey: field.key,
@@ -303,7 +304,7 @@ function getNodeMissingFields(
 
 // Get missing required fields for workflow nodes
 function getMissingRequiredFields(
-  nodes: WorkflowNode[]
+  nodes: WorkflowNode[],
 ): MissingRequiredFieldInfo[] {
   return nodes
     .map(getNodeMissingFields)
@@ -315,7 +316,7 @@ function getMissingRequiredFields(
 // Also handles built-in actions that aren't in the plugin registry
 function getMissingIntegrations(
   nodes: WorkflowNode[],
-  userIntegrations: Array<{ id: string; type: IntegrationType }>
+  userIntegrations: Array<{ id: string; type: IntegrationType }>,
 ): MissingIntegrationInfo[] {
   const userIntegrationTypes = new Set(userIntegrations.map((i) => i.type));
   const userIntegrationIds = new Set(userIntegrations.map((i) => i.id));
@@ -340,6 +341,11 @@ function getMissingIntegrations(
       action?.integration || BUILTIN_ACTION_INTEGRATIONS[actionType];
 
     if (!requiredIntegrationType) {
+      continue;
+    }
+
+    // Skip integrations that don't require credentials (no formFields)
+    if (!integrationRequiresCredentials(requiredIntegrationType)) {
       continue;
     }
 
@@ -373,7 +379,7 @@ function getMissingIntegrations(
         BUILTIN_INTEGRATION_LABELS[integrationType] ||
         integrationType,
       nodeNames,
-    })
+    }),
   );
 }
 
@@ -409,7 +415,7 @@ async function executeTestWorkflow({
 
   try {
     // Start the execution via API
-    const response = await fetch(`/api/workflow/${workflowId}/execute`, {
+    const response = await fetch(`/api/workflow/${ workflowId }/execute`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -430,7 +436,7 @@ async function executeTestWorkflow({
     const pollInterval = setInterval(async () => {
       try {
         const statusData = await api.workflow.getExecutionStatus(
-          result.executionId
+          result.executionId,
         );
 
         // Update node statuses based on the execution logs
@@ -468,7 +474,7 @@ async function executeTestWorkflow({
   } catch (error) {
     console.error("Failed to execute workflow:", error);
     toast.error(
-      error instanceof Error ? error.message : "Failed to execute workflow"
+      error instanceof Error ? error.message : "Failed to execute workflow",
     );
     updateNodesStatus(nodes, updateNodeData, "error");
     setIsExecuting(false);
@@ -522,7 +528,7 @@ function useWorkflowHandlers({
         clearInterval(pollingIntervalRef.current);
       }
     },
-    []
+    [],
   );
 
   const handleSave = async () => {
@@ -632,16 +638,16 @@ function useWorkflowState() {
   const updateNodeData = useSetAtom(updateNodeDataAtom);
   const [currentWorkflowId] = useAtom(currentWorkflowIdAtom);
   const [workflowName, setCurrentWorkflowName] = useAtom(
-    currentWorkflowNameAtom
+    currentWorkflowNameAtom,
   );
   const [workflowVisibility, setWorkflowVisibility] = useAtom(
-    currentWorkflowVisibilityAtom
+    currentWorkflowVisibilityAtom,
   );
   const isOwner = useAtomValue(isWorkflowOwnerAtom);
   const router = useRouter();
   const [isSaving, setIsSaving] = useAtom(isSavingAtom);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useAtom(
-    hasUnsavedChangesAtom
+    hasUnsavedChangesAtom,
   );
   const undo = useSetAtom(undoAtom);
   const redo = useSetAtom(redoAtom);
@@ -792,7 +798,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
   const handleDeleteWorkflow = () => {
     openOverlay(ConfirmOverlay, {
       title: "Delete Workflow",
-      message: `Are you sure you want to delete "${workflowName}"? This will permanently delete the workflow. This cannot be undone.`,
+      message: `Are you sure you want to delete "${ workflowName }"? This will permanently delete the workflow. This cannot be undone.`,
       confirmLabel: "Delete Workflow",
       confirmVariant: "destructive" as const,
       destructive: true,
@@ -846,7 +852,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${workflowName.toLowerCase().replace(/[^a-z0-9]/g, "-")}-workflow.zip`;
+      a.download = `${ workflowName.toLowerCase().replace(/[^a-z0-9]/g, "-") }-workflow.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -855,7 +861,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
       toast.success("Workflow downloaded successfully!");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to download workflow"
+        error instanceof Error ? error.message : "Failed to download workflow",
       );
     } finally {
       setIsDownloading(false);
@@ -924,7 +930,7 @@ function useWorkflowActions(state: ReturnType<typeof useWorkflowState>) {
 
       const newWorkflow = await api.workflow.duplicate(currentWorkflowId);
       toast.success("Workflow duplicated successfully");
-      router.push(`/workflows/${newWorkflow.id}`);
+      router.push(`/workflows/${ newWorkflow.id }`);
     } catch (error) {
       console.error("Failed to duplicate workflow:", error);
       toast.error("Failed to duplicate workflow. Please try again.");
@@ -983,8 +989,8 @@ function ToolbarActions({
     const itemType = isNode ? "Node" : "Connection";
 
     push(ConfirmOverlay, {
-      title: `Delete ${itemType}`,
-      message: `Are you sure you want to delete this ${itemType.toLowerCase()}? This action cannot be undone.`,
+      title: `Delete ${ itemType }`,
+      message: `Are you sure you want to delete this ${ itemType.toLowerCase() }? This action cannot be undone.`,
       confirmLabel: "Delete",
       confirmVariant: "destructive" as const,
       onConfirm: () => {
@@ -1064,123 +1070,123 @@ function ToolbarActions({
 
   return (
     <>
-      {/* Add Step - Mobile Vertical */}
+      {/* Add Step - Mobile Vertical */ }
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={state.isGenerating}
-          onClick={handleAddStep}
+          disabled={ state.isGenerating }
+          onClick={ handleAddStep }
           size="icon"
           title="Add Step"
           variant="secondary"
         >
-          <Plus className="size-4" />
+          <Plus className="size-4"/>
         </Button>
       </ButtonGroup>
 
-      {/* Properties - Mobile Vertical (always visible) */}
+      {/* Properties - Mobile Vertical (always visible) */ }
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <Button
           className="border hover:bg-black/5 dark:hover:bg-white/5"
-          onClick={() => openOverlay(ConfigurationOverlay, {})}
+          onClick={ () => openOverlay(ConfigurationOverlay, {}) }
           size="icon"
           title="Configuration"
           variant="secondary"
         >
-          <Settings2 className="size-4" />
+          <Settings2 className="size-4"/>
         </Button>
-        {/* Delete - Show when node or edge is selected */}
-        {hasSelection && (
+        {/* Delete - Show when node or edge is selected */ }
+        { hasSelection && (
           <Button
             className="border hover:bg-black/5 dark:hover:bg-white/5"
-            onClick={handleDeleteConfirm}
+            onClick={ handleDeleteConfirm }
             size="icon"
             title="Delete"
             variant="secondary"
           >
-            <Trash2 className="size-4" />
+            <Trash2 className="size-4"/>
           </Button>
-        )}
+        ) }
       </ButtonGroup>
 
-      {/* Add Step - Desktop Horizontal */}
+      {/* Add Step - Desktop Horizontal */ }
       <ButtonGroup className="hidden lg:flex" orientation="horizontal">
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={state.isGenerating}
-          onClick={handleAddStep}
+          disabled={ state.isGenerating }
+          onClick={ handleAddStep }
           size="icon"
           title="Add Step"
           variant="secondary"
         >
-          <Plus className="size-4" />
+          <Plus className="size-4"/>
         </Button>
       </ButtonGroup>
 
-      {/* Undo/Redo - Mobile Vertical */}
+      {/* Undo/Redo - Mobile Vertical */ }
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={!state.canUndo || state.isGenerating}
-          onClick={() => state.undo()}
+          disabled={ !state.canUndo || state.isGenerating }
+          onClick={ () => state.undo() }
           size="icon"
           title="Undo"
           variant="secondary"
         >
-          <Undo2 className="size-4" />
+          <Undo2 className="size-4"/>
         </Button>
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={!state.canRedo || state.isGenerating}
-          onClick={() => state.redo()}
+          disabled={ !state.canRedo || state.isGenerating }
+          onClick={ () => state.redo() }
           size="icon"
           title="Redo"
           variant="secondary"
         >
-          <Redo2 className="size-4" />
+          <Redo2 className="size-4"/>
         </Button>
       </ButtonGroup>
 
-      {/* Undo/Redo - Desktop Horizontal */}
+      {/* Undo/Redo - Desktop Horizontal */ }
       <ButtonGroup className="hidden lg:flex" orientation="horizontal">
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={!state.canUndo || state.isGenerating}
-          onClick={() => state.undo()}
+          disabled={ !state.canUndo || state.isGenerating }
+          onClick={ () => state.undo() }
           size="icon"
           title="Undo"
           variant="secondary"
         >
-          <Undo2 className="size-4" />
+          <Undo2 className="size-4"/>
         </Button>
         <Button
           className="border hover:bg-black/5 disabled:opacity-100 dark:hover:bg-white/5 disabled:[&>svg]:text-muted-foreground"
-          disabled={!state.canRedo || state.isGenerating}
-          onClick={() => state.redo()}
+          disabled={ !state.canRedo || state.isGenerating }
+          onClick={ () => state.redo() }
           size="icon"
           title="Redo"
           variant="secondary"
         >
-          <Redo2 className="size-4" />
+          <Redo2 className="size-4"/>
         </Button>
       </ButtonGroup>
 
-      {/* Save/Download - Mobile Vertical */}
+      {/* Save/Download - Mobile Vertical */ }
       <ButtonGroup className="flex lg:hidden" orientation="vertical">
-        <SaveButton handleSave={actions.handleSave} state={state} />
-        <DownloadButton actions={actions} state={state} />
+        <SaveButton handleSave={ actions.handleSave } state={ state }/>
+        <DownloadButton actions={ actions } state={ state }/>
       </ButtonGroup>
 
-      {/* Save/Download - Desktop Horizontal */}
+      {/* Save/Download - Desktop Horizontal */ }
       <ButtonGroup className="hidden lg:flex" orientation="horizontal">
-        <SaveButton handleSave={actions.handleSave} state={state} />
-        <DownloadButton actions={actions} state={state} />
+        <SaveButton handleSave={ actions.handleSave } state={ state }/>
+        <DownloadButton actions={ actions } state={ state }/>
       </ButtonGroup>
 
-      {/* Visibility Toggle */}
-      <VisibilityButton actions={actions} state={state} />
+      {/* Visibility Toggle */ }
+      <VisibilityButton actions={ actions } state={ state }/>
 
-      <RunButtonGroup actions={actions} state={state} />
+      <RunButtonGroup actions={ actions } state={ state }/>
     </>
   );
 }
@@ -1199,19 +1205,19 @@ function SaveButton({
       disabled={
         !state.currentWorkflowId || state.isGenerating || state.isSaving
       }
-      onClick={handleSave}
+      onClick={ handleSave }
       size="icon"
-      title={state.isSaving ? "Saving..." : "Save workflow"}
+      title={ state.isSaving ? "Saving..." : "Save workflow" }
       variant="secondary"
     >
-      {state.isSaving ? (
-        <Loader2 className="size-4 animate-spin" />
+      { state.isSaving ? (
+        <Loader2 className="size-4 animate-spin"/>
       ) : (
-        <Save className="size-4" />
-      )}
-      {state.hasUnsavedChanges && !state.isSaving && (
-        <div className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary" />
-      )}
+        <Save className="size-4"/>
+      ) }
+      { state.hasUnsavedChanges && !state.isSaving && (
+        <div className="absolute top-1.5 right-1.5 size-2 rounded-full bg-primary"/>
+      ) }
     </Button>
   );
 }
@@ -1242,7 +1248,7 @@ function DownloadButton({
         state.isGenerating ||
         !state.currentWorkflowId
       }
-      onClick={handleClick}
+      onClick={ handleClick }
       size="icon"
       title={
         state.isDownloading
@@ -1251,11 +1257,11 @@ function DownloadButton({
       }
       variant="secondary"
     >
-      {state.isDownloading ? (
-        <Loader2 className="size-4 animate-spin" />
+      { state.isDownloading ? (
+        <Loader2 className="size-4 animate-spin"/>
       ) : (
-        <Download className="size-4" />
-      )}
+        <Download className="size-4"/>
+      ) }
     </Button>
   );
 }
@@ -1275,34 +1281,34 @@ function VisibilityButton({
       <DropdownMenuTrigger asChild>
         <Button
           className="border hover:bg-black/5 dark:hover:bg-white/5"
-          disabled={!state.currentWorkflowId || state.isGenerating}
+          disabled={ !state.currentWorkflowId || state.isGenerating }
           size="icon"
-          title={isPublic ? "Public workflow" : "Private workflow"}
+          title={ isPublic ? "Public workflow" : "Private workflow" }
           variant="secondary"
         >
-          {isPublic ? (
-            <Globe className="size-4" />
+          { isPublic ? (
+            <Globe className="size-4"/>
           ) : (
-            <Lock className="size-4" />
-          )}
+            <Lock className="size-4"/>
+          ) }
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem
           className="flex items-center gap-2"
-          onClick={() => actions.handleToggleVisibility("private")}
+          onClick={ () => actions.handleToggleVisibility("private") }
         >
-          <Lock className="size-4" />
+          <Lock className="size-4"/>
           Private
-          {!isPublic && <Check className="ml-auto size-4" />}
+          { !isPublic && <Check className="ml-auto size-4"/> }
         </DropdownMenuItem>
         <DropdownMenuItem
           className="flex items-center gap-2"
-          onClick={() => actions.handleToggleVisibility("public")}
+          onClick={ () => actions.handleToggleVisibility("public") }
         >
-          <Globe className="size-4" />
+          <Globe className="size-4"/>
           Public
-          {isPublic && <Check className="ml-auto size-4" />}
+          { isPublic && <Check className="ml-auto size-4"/> }
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -1323,16 +1329,16 @@ function RunButtonGroup({
       disabled={
         state.isExecuting || state.nodes.length === 0 || state.isGenerating
       }
-      onClick={() => actions.handleExecute()}
+      onClick={ () => actions.handleExecute() }
       size="icon"
       title="Run Workflow"
       variant="secondary"
     >
-      {state.isExecuting ? (
-        <Loader2 className="size-4 animate-spin" />
+      { state.isExecuting ? (
+        <Loader2 className="size-4 animate-spin"/>
       ) : (
-        <Play className="size-4" />
-      )}
+        <Play className="size-4"/>
+      ) }
     </Button>
   );
 }
@@ -1348,17 +1354,17 @@ function DuplicateButton({
   return (
     <Button
       className="h-9 border hover:bg-black/5 dark:hover:bg-white/5"
-      disabled={isDuplicating}
-      onClick={onDuplicate}
+      disabled={ isDuplicating }
+      onClick={ onDuplicate }
       size="sm"
       title="Duplicate to your workflows"
       variant="secondary"
     >
-      {isDuplicating ? (
-        <Loader2 className="mr-2 size-4 animate-spin" />
+      { isDuplicating ? (
+        <Loader2 className="mr-2 size-4 animate-spin"/>
       ) : (
-        <Copy className="mr-2 size-4" />
-      )}
+        <Copy className="mr-2 size-4"/>
+      ) }
       Duplicate
     </Button>
   );
@@ -1376,21 +1382,23 @@ function WorkflowMenuComponent({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <div className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
-        <DropdownMenu onOpenChange={(open) => open && actions.loadWorkflows()}>
-          <DropdownMenuTrigger className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
-            <WorkflowIcon className="size-4 shrink-0" />
+      <div
+        className="flex h-9 max-w-[160px] items-center overflow-hidden rounded-md border bg-secondary text-secondary-foreground sm:max-w-none">
+        <DropdownMenu onOpenChange={ (open) => open && actions.loadWorkflows() }>
+          <DropdownMenuTrigger
+            className="flex h-full cursor-pointer items-center gap-2 px-3 font-medium text-sm transition-all hover:bg-black/5 dark:hover:bg-white/5">
+            <WorkflowIcon className="size-4 shrink-0"/>
             <p className="truncate font-medium text-sm">
-              {workflowId ? (
+              { workflowId ? (
                 state.workflowName
               ) : (
                 <>
                   <span className="sm:hidden">New</span>
                   <span className="hidden sm:inline">New Workflow</span>
                 </>
-              )}
+              ) }
             </p>
-            <ChevronDown className="size-3 shrink-0 opacity-50" />
+            <ChevronDown className="size-3 shrink-0 opacity-50"/>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
             <DropdownMenuItem
@@ -1398,12 +1406,12 @@ function WorkflowMenuComponent({
               className="flex items-center justify-between"
             >
               <a href="/">
-                New Workflow{" "}
-                {!workflowId && <Check className="size-4 shrink-0" />}
+                New Workflow{ " " }
+                { !workflowId && <Check className="size-4 shrink-0"/> }
               </a>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            {state.allWorkflows.length === 0 ? (
+            <DropdownMenuSeparator/>
+            { state.allWorkflows.length === 0 ? (
               <DropdownMenuItem disabled>No workflows found</DropdownMenuItem>
             ) : (
               state.allWorkflows
@@ -1411,26 +1419,26 @@ function WorkflowMenuComponent({
                 .map((workflow) => (
                   <DropdownMenuItem
                     className="flex items-center justify-between"
-                    key={workflow.id}
-                    onClick={() =>
-                      state.router.push(`/workflows/${workflow.id}`)
+                    key={ workflow.id }
+                    onClick={ () =>
+                      state.router.push(`/workflows/${ workflow.id }`)
                     }
                   >
-                    <span className="truncate">{workflow.name}</span>
-                    {workflow.id === state.currentWorkflowId && (
-                      <Check className="size-4 shrink-0" />
-                    )}
+                    <span className="truncate">{ workflow.name }</span>
+                    { workflow.id === state.currentWorkflowId && (
+                      <Check className="size-4 shrink-0"/>
+                    ) }
                   </DropdownMenuItem>
                 ))
-            )}
+            ) }
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      {workflowId && !state.isOwner && (
+      { workflowId && !state.isOwner && (
         <span className="text-muted-foreground text-xs uppercase lg:hidden">
           Read-only
         </span>
-      )}
+      ) }
     </div>
   );
 }
@@ -1447,39 +1455,39 @@ export const WorkflowToolbar = ({ workflowId }: WorkflowToolbarProps) => {
       >
         <div className="flex items-center gap-2">
           <WorkflowMenuComponent
-            actions={actions}
-            state={state}
-            workflowId={workflowId}
+            actions={ actions }
+            state={ state }
+            workflowId={ workflowId }
           />
-          {workflowId && !state.isOwner && (
+          { workflowId && !state.isOwner && (
             <span className="hidden text-muted-foreground text-xs uppercase lg:inline">
               Read-only
             </span>
-          )}
+          ) }
         </div>
       </Panel>
 
       <div className="pointer-events-auto absolute top-4 right-4 z-10">
         <div className="flex flex-col-reverse items-end gap-2 lg:flex-row lg:items-center">
           <ToolbarActions
-            actions={actions}
-            state={state}
-            workflowId={workflowId}
+            actions={ actions }
+            state={ state }
+            workflowId={ workflowId }
           />
           <div className="flex items-center gap-2">
-            {!workflowId && (
+            { !workflowId && (
               <>
-                <GitHubStarsButton />
-                <DeployButton />
+                <GitHubStarsButton/>
+                <DeployButton/>
               </>
-            )}
-            {workflowId && !state.isOwner && (
+            ) }
+            { workflowId && !state.isOwner && (
               <DuplicateButton
-                isDuplicating={state.isDuplicating}
-                onDuplicate={actions.handleDuplicate}
+                isDuplicating={ state.isDuplicating }
+                onDuplicate={ actions.handleDuplicate }
               />
-            )}
-            <UserMenu />
+            ) }
+            <UserMenu/>
           </div>
         </div>
       </div>

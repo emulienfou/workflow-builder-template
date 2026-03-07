@@ -1,5 +1,11 @@
 # next-workflow-builder
 
+## 0.4.6
+
+### Features
+
+- Add `integrationRequiresCredentials` helper to check if an integration type requires credentials (has `formFields`). Plugins with no form fields don't need a connection.
+
 ## 0.4.5
 
 ### Bug Fixes
