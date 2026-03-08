@@ -1,5 +1,11 @@
 # next-workflow-builder
 
+## 0.4.7
+
+### Bug Fixes
+
+- Inline `authOptions` and `databaseUrl` as build-time environment variables via Next.js `env` config. This eliminates the need for an `instrumentation.ts` file to re-set `__NWB_AUTH_OPTIONS` on Vercel serverless cold starts. Works for all auth providers (Vercel, Google, GitHub, etc.).
+
 ## 0.4.6
 
 ### Features

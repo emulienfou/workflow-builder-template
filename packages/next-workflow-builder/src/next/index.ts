@@ -43,11 +43,11 @@ const nextWorkflowBuilder = (
   // Inject authOptions as env var so server auth code can read it at build time.
   // Next.js inlines process.env values set during config evaluation into server bundles.
   if (loaderOptions.authOptions) {
-    process.env.__NWB_AUTH_OPTIONS = JSON.stringify(loaderOptions.authOptions);
+    process.env.NWB_AUTH_OPTIONS = JSON.stringify(loaderOptions.authOptions);
   }
 
   if (loaderOptions.databaseUrl) {
-    process.env.__NWB_DATABASE_URL = loaderOptions.databaseUrl;
+    process.env.NWB_DATABASE_URL = loaderOptions.databaseUrl;
   }
 
   // Discover plugins
@@ -62,8 +62,26 @@ const nextWorkflowBuilder = (
     const consumerStepRegistryRelative = "./lib/step-registry.ts";
     const consumerStepRegistryAbsolute = join(process.cwd(), "lib", "step-registry.ts");
 
+    // Inline NWB config as build-time env vars via Next.js `env` config.
+    // This uses DefinePlugin (webpack) / equivalent (turbopack) to bake values
+    // into the server bundle, so they persist on Vercel serverless cold starts
+    // without requiring an instrumentation.ts file.
+    const inlinedEnv: Record<string, string> = {};
+    if (loaderOptions.authOptions) {
+      inlinedEnv.NWB_AUTH_OPTIONS = JSON.stringify(loaderOptions.authOptions);
+    }
+    if (loaderOptions.databaseUrl) {
+      inlinedEnv.NWB_DATABASE_URL = loaderOptions.databaseUrl;
+    }
+
     return {
       ...nextConfig,
+      ...(Object.keys(inlinedEnv).length > 0 ? {
+        env: {
+          ...nextConfig.env,
+          ...inlinedEnv,
+        },
+      } : {}),
       // Turbopack alias (used by `next dev` in Next.js 15+)
       turbopack: {
         ...nextConfig.turbopack,

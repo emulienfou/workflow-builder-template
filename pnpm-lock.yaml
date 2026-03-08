@@ -199,6 +199,9 @@ importers:
       dotenv:
         specifier: ^17.3.1
         version: 17.3.1
+      drizzle-kit:
+        specifier: ^0.31.4
+        version: 0.31.6
       eslint:
         specifier: ^9
         version: 9.39.3(jiti@2.6.1)

@@ -8,11 +8,11 @@ export interface WfbAuthConfig {
 /**
  * Get the current auth configuration.
  * Reads provider list from WFB_AUTH_PROVIDERS env var.
- * Reads authOptions from __NWB_AUTH_OPTIONS env var (set by nextWorkflowBuilder()).
+ * Reads authOptions from NWB_AUTH_OPTIONS env var (set by nextWorkflowBuilder()).
  */
 export function getAuthConfig(): WfbAuthConfig {
-  const authOptions = process.env.__NWB_AUTH_OPTIONS
-    ? JSON.parse(process.env.__NWB_AUTH_OPTIONS) as BetterAuthOptions
+  const authOptions = process.env.NWB_AUTH_OPTIONS
+    ? JSON.parse(process.env.NWB_AUTH_OPTIONS) as BetterAuthOptions
     : undefined;
 
   return {
