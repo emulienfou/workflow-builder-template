@@ -9,10 +9,14 @@ const conditionAction: ActionType = {
   icon: <GitBranch className="size-12 text-pink-300" strokeWidth={ 1.5 }/>,
   codeGenerator: `export async function conditionStep(input: {
   condition: boolean;
+  dataType?: string;
+  operator?: string;
+  leftValue?: unknown;
+  rightValue?: unknown;
 }) {
   "use step";
-  
-  // Evaluate condition
+
+  // Evaluate structured condition
   return { condition: input.condition };
 }`,
 };

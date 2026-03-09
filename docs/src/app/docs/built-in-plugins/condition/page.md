@@ -1,65 +1,73 @@
 # Condition
 
-Branch your workflow based on a boolean expression. When the condition evaluates to `true`, downstream nodes execute. When `false`, they are skipped.
+Branch your workflow based on a structured condition. When the condition evaluates to `true`, downstream nodes execute. When `false`, they are skipped.
 
 ## Configuration
 
 | Field | Type | Required | Description |
 | --- | --- | --- | --- |
-| Condition | Template Input | Yes | A JavaScript expression that evaluates to `true` or `false` |
+| leftValue | Template Input | Yes | The value to test (supports template references) |
+| dataType | Select | Yes | Data type for comparison: String, Number, Boolean, or Date & Time |
+| operator | Select | Yes | Comparison operator (options change per data type) |
+| rightValue | Template Input | For binary operators | The value to compare against (hidden for unary operators) |
 
-## Condition Expressions
+## Operators
 
-The condition field accepts any valid JavaScript comparison expression. Template references are resolved before evaluation.
+### String
 
-### Comparison operators
+| Operator | Description |
+| --- | --- |
+| exists | Value is not null or undefined |
+| does not exist | Value is null or undefined |
+| is empty | Value is null, undefined, or empty string |
+| is not empty | Value is not null, undefined, or empty string |
+| equals | Exact string match |
+| does not equal | Strings are different |
+| contains | Left value includes right value |
+| does not contain | Left value does not include right value |
+| starts with | Left value starts with right value |
+| does not start with | Left value does not start with right value |
+| ends with | Left value ends with right value |
+| does not end with | Left value does not end with right value |
+| matches regex | Left value matches the regular expression |
+| does not match regex | Left value does not match the regular expression |
 
-```
-{{Trigger.status}} === 200
-{{FetchData.count}} > 0
-{{User.role}} !== "admin"
-{{Order.total}} >= 100
-```
+### Number
 
-### Logical operators
+| Operator | Description |
+| --- | --- |
+| equals | Numbers are equal |
+| does not equal | Numbers are different |
+| greater than | Left > right |
+| less than | Left < right |
+| greater than or equal | Left >= right |
+| less than or equal | Left <= right |
 
-```
-{{Trigger.status}} === 200 && {{Trigger.data.length}} > 0
-{{User.role}} === "admin" || {{User.role}} === "editor"
-```
+### Boolean
 
-### String methods
+| Operator | Description |
+| --- | --- |
+| is true | Value is truthy |
+| is false | Value is falsy |
+| exists | Value is not null or undefined |
+| does not exist | Value is null or undefined |
 
-```
-{{Trigger.email}}.includes("@company.com")
-{{Trigger.name}}.startsWith("John")
-```
+### Date & Time
+
+| Operator | Description |
+| --- | --- |
+| is before | Left date is before right date |
+| is after | Left date is after right date |
+| equals | Dates are equal |
 
 ## Output
 
 | Field | Type | Description |
 | --- | --- | --- |
-| `condition` | `boolean` | The evaluated result of the condition expression |
+| `condition` | `boolean` | The evaluated result of the condition |
 
 ## Workflow Behavior
 
 - **True branch**: All nodes connected downstream of the Condition node execute normally
 - **False branch**: All downstream nodes are skipped
-- The original condition expression and resolved values are logged for debugging
-
-## Security
-
-Condition expressions are validated before evaluation to prevent code injection. Only comparison operators, logical operators, and a whitelist of safe methods are allowed. Expressions containing function calls, assignments, or other potentially unsafe patterns are rejected.
-
-## Generated Code
-
-When exporting a workflow, the Condition action generates an `if` block:
-
-```ts
-if (previousResult.status === 200) {
-  // True branch nodes
-  const sendEmail = await sendEmailStep({
-    emailTo: 'user@example.com',
-  });
-}
-```
+- The data type, operator, and resolved values are logged for debugging

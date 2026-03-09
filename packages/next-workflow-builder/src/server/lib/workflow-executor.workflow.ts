@@ -7,7 +7,7 @@ import { getErrorMessageAsync } from "../../client/lib/utils";
 import type { WorkflowEdge, WorkflowNode } from "../../client/lib/workflow-store";
 import { StepImporter } from "../types";
 
-import { preValidateConditionExpression, validateConditionExpression } from "./condition-validator";
+import { type DataType, evaluateOperator } from "../../plugins/condition/operators";
 import type { StepContext } from "./steps/step-handler";
 import { triggerStep } from "./steps/trigger";
 
@@ -62,50 +62,42 @@ export type WorkflowExecutionInput = {
 };
 
 /**
- * Helper to replace template variables in conditions
+ * Resolve a template value, preserving the raw typed value when possible.
+ * If the entire value is a single template `{{@nodeId:Label.field}}`, returns the raw value.
+ * If it contains templates mixed with text, does string replacement.
+ * Otherwise returns the literal as-is.
  */
-// biome-ignore lint/nursery/useMaxParams: Helper function needs all parameters for template replacement
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template variable replacement requires nested logic for standardized outputs
-function replaceTemplateVariable(
-  match: string,
-  nodeId: string,
-  rest: string,
-  outputs: NodeOutputs,
-  evalContext: Record<string, unknown>,
-  varCounter: { value: number },
-): string {
-  const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
-  const output = outputs[sanitizedNodeId];
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Template resolution requires nested logic for standardized outputs
+function resolveTemplateValue(value: string | undefined, outputs: NodeOutputs): unknown {
+  if (value === undefined || value === "") return undefined;
 
-  if (!output) {
-    console.log("[Condition] Output not found for node:", sanitizedNodeId);
-    return match;
-  }
+  const templatePattern = /\{\{@([^:]+):([^}]+)\}\}/g;
+  const matches = [...value.matchAll(templatePattern)];
 
-  const dotIndex = rest.indexOf(".");
-  let value: unknown;
+  // No templates — return literal string
+  if (matches.length === 0) return value;
 
-  if (dotIndex === -1) {
-    value = output.data;
-  } else if (output.data === null || output.data === undefined) {
-    value = undefined;
-  } else {
+  // Helper to extract a value from outputs given nodeId + rest (e.g. "Label.field")
+  function extractValue(nodeId: string, rest: string): unknown {
+    const sanitizedNodeId = nodeId.replace(/[^a-zA-Z0-9]/g, "_");
+    const output = outputs[sanitizedNodeId];
+    if (!output) return undefined;
+
+    const dotIndex = rest.indexOf(".");
+    if (dotIndex === -1) return output.data;
+    if (output.data === null || output.data === undefined) return undefined;
+
     const fieldPath = rest.substring(dotIndex + 1);
     const fields = fieldPath.split(".");
     // biome-ignore lint/suspicious/noExplicitAny: Dynamic data traversal
     let current: any = output.data;
 
-    // For standardized outputs { success, data, error }, automatically look inside data
-    // unless explicitly accessing success/data/error or a field that exists at the top level
+    // Auto-unwrap standardized { success, data } outputs
     const firstField = fields[0];
     if (
-      current &&
-      typeof current === "object" &&
-      "success" in current &&
-      "data" in current &&
-      firstField !== "success" &&
-      firstField !== "data" &&
-      firstField !== "error" &&
+      current && typeof current === "object" &&
+      "success" in current && "data" in current &&
+      firstField !== "success" && firstField !== "data" && firstField !== "error" &&
       !(firstField in current)
     ) {
       current = current.data;
@@ -115,20 +107,24 @@ function replaceTemplateVariable(
       if (current && typeof current === "object") {
         current = current[field];
       } else {
-        console.log("[Condition] Field access failed:", fieldPath);
-        value = undefined;
-        break;
+        return undefined;
       }
     }
-    if (value === undefined && current !== undefined) {
-      value = current;
-    }
+    return current;
   }
 
-  const varName = `__v${ varCounter.value }`;
-  varCounter.value += 1;
-  evalContext[varName] = value;
-  return varName;
+  // Single template filling the entire string → return raw typed value
+  if (matches.length === 1 && matches[0][0] === value) {
+    return extractValue(matches[0][1], matches[0][2]);
+  }
+
+  // Mixed text + templates → string replacement
+  return value.replace(templatePattern, (match, nodeId, rest) => {
+    const val = extractValue(nodeId, rest);
+    if (val === null || val === undefined) return "";
+    if (typeof val === "object") return JSON.stringify(val);
+    return String(val);
+  });
 }
 
 type ConditionEvalResult = {
@@ -137,86 +133,32 @@ type ConditionEvalResult = {
 };
 
 /**
- * Evaluate condition expression with template variable replacement
- * Uses Function constructor to evaluate user-defined conditions dynamically
- *
- * Security: Expressions are validated before evaluation to prevent code injection.
- * Only comparison operators, logical operators, and whitelisted methods are allowed.
+ * Evaluate a structured condition using operator definitions.
+ * No arbitrary code execution — uses pure evaluateOperator().
  */
-function evaluateConditionExpression(
-  conditionExpression: unknown,
+function evaluateStructuredCondition(
+  config: Record<string, unknown>,
   outputs: NodeOutputs,
 ): ConditionEvalResult {
-  console.log("[Condition] Original expression:", conditionExpression);
+  const dataType = (config.dataType as DataType) || "string";
+  const operator = config.operator as string;
+  const leftRaw = config.leftValue as string | undefined;
+  const rightRaw = config.rightValue as string | undefined;
 
-  if (typeof conditionExpression === "boolean") {
-    return { result: conditionExpression, resolvedValues: {} };
-  }
+  const leftResolved = resolveTemplateValue(leftRaw, outputs);
+  const rightResolved = resolveTemplateValue(rightRaw, outputs);
 
-  if (typeof conditionExpression === "string") {
-    // Pre-validate the expression before any processing
-    const preValidation = preValidateConditionExpression(conditionExpression);
-    if (!preValidation.valid) {
-      console.error("[Condition] Pre-validation failed:", preValidation.error);
-      console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
-    }
+  console.log("[Condition] Evaluating:", { dataType, operator, leftResolved, rightResolved });
 
-    try {
-      const evalContext: Record<string, unknown> = {};
-      const resolvedValues: Record<string, unknown> = {};
-      let transformedExpression = conditionExpression;
-      const templatePattern = /\{\{@([^:]+):([^}]+)\}\}/g;
-      const varCounter = { value: 0 };
+  const result = evaluateOperator(dataType, operator, leftResolved, rightResolved);
 
-      transformedExpression = transformedExpression.replace(
-        templatePattern,
-        (match, nodeId, rest) => {
-          const varName = replaceTemplateVariable(
-            match,
-            nodeId,
-            rest,
-            outputs,
-            evalContext,
-            varCounter,
-          );
-          // Store the resolved value with a readable key (the display text from the template)
-          resolvedValues[rest] = evalContext[varName];
-          return varName;
-        },
-      );
-
-      // Validate the transformed expression before evaluation
-      const validation = validateConditionExpression(transformedExpression);
-      if (!validation.valid) {
-        console.error("[Condition] Validation failed:", validation.error);
-        console.error("[Condition] Original expression:", conditionExpression);
-        console.error(
-          "[Condition] Transformed expression:",
-          transformedExpression,
-        );
-        return { result: false, resolvedValues };
-      }
-
-      const varNames = Object.keys(evalContext);
-      const varValues = Object.values(evalContext);
-
-      // Safe to evaluate - expression has been validated
-      // Only contains: variables (__v0, __v1), operators, literals, and whitelisted methods
-      const evalFunc = new Function(
-        ...varNames,
-        `return (${ transformedExpression });`,
-      );
-      const result = evalFunc(...varValues);
-      return { result: Boolean(result), resolvedValues };
-    } catch (error) {
-      console.error("[Condition] Failed to evaluate condition:", error);
-      console.error("[Condition] Expression was:", conditionExpression);
-      return { result: false, resolvedValues: {} };
-    }
-  }
-
-  return { result: Boolean(conditionExpression), resolvedValues: {} };
+  return {
+    result,
+    resolvedValues: {
+      leftValue: leftResolved,
+      rightValue: rightResolved,
+    },
+  };
 }
 
 /**
@@ -238,22 +180,20 @@ async function executeActionStep(input: {
     _context: context,
   };
 
-  // Special handling for Condition action - needs template evaluation
+  // Special handling for Condition action - evaluate structured condition
   if (actionType === "Condition") {
     const systemAction = SYSTEM_ACTIONS.Condition;
     const module = await systemAction.importer();
-    const originalExpression = stepInput.condition;
     const { result: evaluatedCondition, resolvedValues } =
-      evaluateConditionExpression(originalExpression, outputs);
+      evaluateStructuredCondition(config, outputs);
     console.log("[Condition] Final result:", evaluatedCondition);
 
     return await module[systemAction.stepFunction]({
       condition: evaluatedCondition,
-      // Include original expression and resolved values for logging purposes
-      expression:
-        typeof originalExpression === "string" ? originalExpression : undefined,
-      values:
-        Object.keys(resolvedValues).length > 0 ? resolvedValues : undefined,
+      dataType: config.dataType,
+      operator: config.operator,
+      leftValue: resolvedValues.leftValue,
+      rightValue: resolvedValues.rightValue,
       _context: context,
     });
   }
@@ -560,20 +500,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           return;
         }
 
-        // Process templates in config, but keep condition unprocessed for special handling
-        const configWithoutCondition = { ...config };
-        const originalCondition = config.condition;
-        configWithoutCondition.condition = undefined;
-
-        const processedConfig = processTemplates(
-          configWithoutCondition,
-          outputs,
-        );
-
-        // Add back the original condition (unprocessed)
-        if (originalCondition !== undefined) {
-          processedConfig.condition = originalCondition;
-        }
+        const processedConfig = processTemplates(config, outputs);
 
         // Build step context for logging (stepHandler will handle the logging)
         const stepContext: StepContext = {

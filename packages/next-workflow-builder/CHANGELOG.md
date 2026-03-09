@@ -1,5 +1,21 @@
 # next-workflow-builder
 
+## 0.5.0
+
+### Features
+
+- Replace free-text JavaScript condition expressions with structured n8n-style condition builder
+- Add data type selection (String, Number, Boolean, Date & Time) with type-specific operators
+- Add 27 operators across 4 data types: string (14), number (6), boolean (4), datetime (3)
+- Template variable support on both left and right value fields
+- Unary operators (exists, is empty, is true, etc.) automatically hide the right value field
+- Type-aware comparisons preserve raw values instead of stringifying everything
+
+### Breaking Changes
+
+- Condition nodes now use `leftValue`, `dataType`, `operator`, `rightValue` config fields instead of a single `condition` expression field
+- Removed `condition-validator.ts` — structured conditions don't execute arbitrary code
+
 ## 0.4.7
 
 ### Bug Fixes
