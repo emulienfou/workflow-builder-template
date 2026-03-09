@@ -7,7 +7,7 @@ anonymous users, email/password, and social providers.
 
 Out of the box, the package configures Better Auth with:
 
-- **Anonymous authentication** - Users can start building workflows without signing up
+- **Anonymous authentication** - Users can start building workflows without signing up (enabled by default, can be disabled)
 - **Email and password** - Enabled by default with no email verification required
 - **Anonymous account migration** - When an anonymous user signs up, their workflows, integrations, and executions are
   automatically migrated to the new account
@@ -54,6 +54,24 @@ import { Layout } from "next-workflow-builder/client";
 <Layout social={{ providers: ["github", "google"] }}>
   {children}
 </Layout>
+```
+
+### Disabling anonymous authentication
+
+By default, anonymous authentication is enabled so users can try the app without signing up. To require sign-in before using the app:
+
+```ts
+const withNextWorkflowBuilder = nextWorkflowBuilder({
+  anonymousAuth: false,
+  authOptions: {
+    socialProviders: {
+      vercel: {
+        clientId: process.env.VERCEL_CLIENT_ID || "",
+        clientSecret: process.env.VERCEL_CLIENT_SECRET || "",
+      },
+    },
+  },
+});
 ```
 
 ### Disabling email/password auth

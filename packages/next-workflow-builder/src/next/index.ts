@@ -50,6 +50,15 @@ const nextWorkflowBuilder = (
     process.env.NWB_DATABASE_URL = loaderOptions.databaseUrl;
   }
 
+  if (loaderOptions.anonymousAuth === false) {
+    process.env.NWB_ANONYMOUS_AUTH = "false";
+  }
+
+  if (loaderOptions.mcp?.enabled) {
+    process.env.NWB_MCP_ENABLED = "true";
+    process.env.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/sign-in";
+  }
+
   // Discover plugins
   discoverPlugins();
 
@@ -72,6 +81,13 @@ const nextWorkflowBuilder = (
     }
     if (loaderOptions.databaseUrl) {
       inlinedEnv.NWB_DATABASE_URL = loaderOptions.databaseUrl;
+    }
+    if (loaderOptions.anonymousAuth === false) {
+      inlinedEnv.NWB_ANONYMOUS_AUTH = "false";
+    }
+    if (loaderOptions.mcp?.enabled) {
+      inlinedEnv.NWB_MCP_ENABLED = "true";
+      inlinedEnv.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/sign-in";
     }
 
     return {

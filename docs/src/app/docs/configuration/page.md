@@ -28,6 +28,7 @@ const withNextWorkflowBuilder = nextWorkflowBuilder({
 | `debug` | `boolean` | `false` | Enable debug logging |
 | `databaseUrl` | `string` | `undefined` | Override the PostgreSQL connection URL. Falls back to `process.env.DATABASE_URL` when not set. |
 | `authOptions` | `Record<string, unknown>` | `undefined` | Better Auth configuration options (must be JSON-serializable) |
+| `anonymousAuth` | `boolean` | `true` | Enable anonymous authentication so users can try the app before signing in |
 
 The `authOptions` object is serialized and injected as an environment variable at build time, so all values must be
 JSON-serializable. This is where you configure authentication providers, email/password settings, and other Better Auth
