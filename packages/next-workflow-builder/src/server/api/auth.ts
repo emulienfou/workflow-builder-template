@@ -16,8 +16,20 @@ export async function handleAuth(request: Request, pathSegments: string[]): Prom
   const newUrl = `${ url.origin }${ authPath }${ url.search }`;
   const newRequest = rebuildRequest(request, newUrl);
 
-  if (request.method === "GET")
-    return authGet(newRequest);
+  const response = request.method === "GET"
+    ? await authGet(newRequest)
+    : await authPost(newRequest);
 
-  return authPost(newRequest);
+  if (response.status >= 500) {
+    const body = await response.clone().text();
+    // Temporarily surface the error in the response for debugging
+    if (!body) {
+      return new Response(JSON.stringify({ debug: "500 with empty body from better-auth", path: authPath }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  return response;
 }
