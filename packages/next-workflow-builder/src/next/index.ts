@@ -90,39 +90,12 @@ const nextWorkflowBuilder = (
       inlinedEnv.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/auth/sign-in";
     }
 
-    // When MCP is enabled, add rewrites so OAuth discovery works at the root level.
-    // MCP clients (e.g. Claude Desktop) fetch /.well-known/oauth-authorization-server
-    // at the authorization server root, but better-auth serves it under /api/auth/.
-    const mcpRewrites = loaderOptions.mcp?.enabled ? [
-      {
-        source: "/.well-known/oauth-authorization-server",
-        destination: "/api/auth/.well-known/oauth-authorization-server",
-      },
-    ] : [];
-
     return {
       ...nextConfig,
       ...(Object.keys(inlinedEnv).length > 0 ? {
         env: {
           ...nextConfig.env,
           ...inlinedEnv,
-        },
-      } : {}),
-      ...(mcpRewrites.length > 0 ? {
-        rewrites: async () => {
-          const existing = nextConfig.rewrites ? await nextConfig.rewrites() : [];
-          // Must use beforeFiles so rewrites run before the catch-all page route
-          if (Array.isArray(existing)) {
-            return {
-              beforeFiles: mcpRewrites,
-              afterFiles: existing,
-              fallback: [],
-            };
-          }
-          return {
-            ...existing,
-            beforeFiles: [...(existing.beforeFiles || []), ...mcpRewrites],
-          };
         },
       } : {}),
       // Turbopack alias (used by `next dev` in Next.js 15+)

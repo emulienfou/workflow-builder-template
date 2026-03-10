@@ -182,3 +182,5 @@ export async function DELETE(request: Request): Promise<Response> {
 export async function OPTIONS(_request: Request): Promise<Response> {
   return NextResponse.json({}, { headers: corsHeaders });
 }
+
+export { oAuthDiscoveryHandler, oAuthResourceHandler } from "./well-known";
