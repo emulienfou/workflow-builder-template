@@ -115,7 +115,7 @@ function buildAuth() {
     ] : []),
     // MCP OAuth plugin: enabled only when MCP server is configured
     ...(process.env.NWB_MCP_ENABLED === "true" ? [
-      mcpPlugin({ loginPage: process.env.NWB_MCP_LOGIN_PAGE || "/sign-in" }),
+      mcpPlugin({ loginPage: process.env.NWB_MCP_LOGIN_PAGE || "/auth/sign-in" }),
     ] : []),
   ];
 

@@ -13,6 +13,7 @@
 
 ### Bug Fixes
 
+- Fix MCP server requiring OAuth when anonymous auth is enabled — unauthenticated requests now fall back to an anonymous session instead of returning 401
 - Fix hydration mismatch in `UserMenu` when session resolves before React hydration completes
 - Fix anonymous sign-in returning 404 when social providers are configured — anonymous plugin is now enabled by default regardless of configured providers
 
