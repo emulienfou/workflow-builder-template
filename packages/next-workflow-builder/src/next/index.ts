@@ -56,7 +56,7 @@ const nextWorkflowBuilder = (
 
   if (loaderOptions.mcp?.enabled) {
     process.env.NWB_MCP_ENABLED = "true";
-    process.env.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/sign-in";
+    process.env.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/auth/sign-in";
   }
 
   // Discover plugins
@@ -87,8 +87,18 @@ const nextWorkflowBuilder = (
     }
     if (loaderOptions.mcp?.enabled) {
       inlinedEnv.NWB_MCP_ENABLED = "true";
-      inlinedEnv.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/sign-in";
+      inlinedEnv.NWB_MCP_LOGIN_PAGE = loaderOptions.mcp.loginPage || "/auth/sign-in";
     }
+
+    // When MCP is enabled, add rewrites so OAuth discovery works at the root level.
+    // MCP clients (e.g. Claude Desktop) fetch /.well-known/oauth-authorization-server
+    // at the authorization server root, but better-auth serves it under /api/auth/.
+    const mcpRewrites = loaderOptions.mcp?.enabled ? [
+      {
+        source: "/.well-known/oauth-authorization-server",
+        destination: "/api/auth/.well-known/oauth-authorization-server",
+      },
+    ] : [];
 
     return {
       ...nextConfig,
@@ -96,6 +106,19 @@ const nextWorkflowBuilder = (
         env: {
           ...nextConfig.env,
           ...inlinedEnv,
+        },
+      } : {}),
+      ...(mcpRewrites.length > 0 ? {
+        rewrites: async () => {
+          const existing = nextConfig.rewrites ? await nextConfig.rewrites() : [];
+          // Handle both array and object form of rewrites
+          if (Array.isArray(existing)) {
+            return [...existing, ...mcpRewrites];
+          }
+          return {
+            ...existing,
+            beforeFiles: [...(existing.beforeFiles || []), ...mcpRewrites],
+          };
         },
       } : {}),
       // Turbopack alias (used by `next dev` in Next.js 15+)

@@ -13,7 +13,9 @@
 
 ### Bug Fixes
 
-- Fix MCP server requiring OAuth when anonymous auth is enabled — unauthenticated requests now fall back to an anonymous session instead of returning 401
+- Fix MCP OAuth discovery for Claude Desktop and other MCP clients — add Next.js rewrite from `/.well-known/oauth-authorization-server` to better-auth's endpoint so root-level OAuth metadata is discoverable per spec
+- Fix MCP OAuth login redirect pointing to `/sign-in` instead of `/auth/sign-in` where the `AuthView` component actually renders
+- Fix MCP server requiring OAuth when anonymous auth is enabled — session-authenticated requests now bypass OAuth, while unauthenticated requests still receive the proper 401 for OAuth discovery
 - Fix hydration mismatch in `UserMenu` when session resolves before React hydration completes
 - Fix anonymous sign-in returning 404 when social providers are configured — anonymous plugin is now enabled by default regardless of configured providers
 
