@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { handleCreateApiKey, handleDeleteApiKey, handleGetApiKeys } from "./api-keys";
 import { handleAuth } from "./auth";
+import { handleCronWorkflow } from "./cron";
 import { oAuthDiscoveryHandler, oAuthResourceHandler } from "./well-known";
 import {
   handleCreateIntegration,
@@ -111,9 +112,10 @@ async function route(request: Request): Promise<Response> {
     }
   }
 
-  // Single-workflow execute: /workflow/[workflowId]/execute
-  if (s0 === "workflow" && s1 && s2 === "execute") {
-    if (method === "POST") return handleExecuteWorkflow(request, s1);
+  // Single-workflow: /workflow/[workflowId]/execute | /workflow/[workflowId]/cron
+  if (s0 === "workflow" && s1) {
+    if (s2 === "execute" && method === "POST") return handleExecuteWorkflow(request, s1);
+    if (s2 === "cron" && method === "GET") return handleCronWorkflow(request, s1);
   }
 
   // Integrations: /integrations/*

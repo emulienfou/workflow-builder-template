@@ -2,6 +2,11 @@
 
 ## 0.6.1
 
+### Features
+
+- Add cron endpoint (`/workflow/[workflowId]/cron`) for Vercel Cron-triggered scheduled workflow execution with `CRON_SECRET` bearer token auth
+- Generate correct `vercel.json` cron config in code export — use the new cron endpoint path and pass `workflowId` when available
+
 ### Improvements
 
 - Reduce published package size from 1.12 MB to ~664 KB by enabling JS minification and removing unused `style-prefixed.css`

@@ -29,18 +29,19 @@ const FALLBACK_UNKNOWN_CODE = `async function unknownStep(input: Record<string, 
 
 type NodeConfig = Record<string, unknown>;
 
-function generateTriggerCode(config: NodeConfig | undefined): string {
+function generateTriggerCode(config: NodeConfig | undefined, workflowId?: string): string {
   const triggerType = (config?.triggerType as string) || "Manual";
 
   if (triggerType === "Schedule") {
     const cron = (config?.scheduleCron as string) || "0 9 * * *";
-    const timezone = (config?.scheduleTimezone as string) || "America/New_York";
+    const cronPath = workflowId
+      ? `/api/workflow-builder/workflow/${ workflowId }/cron`
+      : "/api/workflow-builder/workflow/<workflowId>/cron";
     return `{
   "crons": [
     {
-      "path": "/api/workflow",
-      "schedule": "${ cron }",
-      "timezone": "${ timezone }"
+      "path": "${ cronPath }",
+      "schedule": "${ cron }"
     }
   ]
 }`;
@@ -97,9 +98,9 @@ export const generateNodeCode = (node: {
     description?: string;
     config?: NodeConfig;
   };
-}): string => {
+}, workflowId?: string): string => {
   if (node.data.type === "trigger") {
-    return generateTriggerCode(node.data.config);
+    return generateTriggerCode(node.data.config, workflowId);
   }
 
   if (node.data.type === "action") {
