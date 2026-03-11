@@ -48,6 +48,43 @@ If using social authentication, configure the OAuth provider's callback URL to p
 https://your-domain.com/api/auth/callback/{provider}
 ```
 
+## Scheduled workflows (Vercel Cron)
+
+If your workflow uses a **Schedule** trigger, the code export generates a `vercel.json` cron configuration. To set it up:
+
+### 1. Add the cron config
+
+Click the **Trigger** node in the workflow editor, then copy the generated JSON into `vercel.json` at the root of your project:
+
+```json
+{
+  "crons": [
+    {
+      "path": "/api/workflow-builder/workflow/<workflowId>/cron",
+      "schedule": "0 9 * * *"
+    }
+  ]
+}
+```
+
+The `path` and `schedule` are pre-filled based on your workflow ID and cron expression.
+
+### 2. Set the `CRON_SECRET` environment variable
+
+In your Vercel project settings, add a `CRON_SECRET` environment variable. Vercel automatically sends this as a bearer token with each cron invocation, and the endpoint rejects requests without it.
+
+```env
+CRON_SECRET=your-random-secret
+```
+
+> **Tip:** On Vercel, you can generate this value automatically via the Vercel dashboard under **Settings → Cron Jobs**.
+
+### 3. Deploy
+
+Deploy your project. Vercel will detect the `crons` key in `vercel.json` and register the schedule automatically. You can monitor cron executions in the Vercel dashboard under **Logs**.
+
+---
+
 ## Self-hosted
 
 ### Requirements

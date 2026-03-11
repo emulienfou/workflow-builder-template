@@ -317,6 +317,7 @@ All routes are relative to the `/api` base path.
 | PATCH | `/workflows/[id]` | Update a workflow |
 | DELETE | `/workflows/[id]` | Delete a workflow |
 | POST | `/workflow/[id]/execute` | Execute a workflow |
+| GET | `/workflow/[id]/cron` | Execute a workflow via Vercel Cron (requires `CRON_SECRET` bearer token) |
 | POST | `/workflows/[id]/duplicate` | Duplicate a workflow |
 | GET | `/workflows/[id]/code` | Get generated code for a workflow |
 | GET | `/workflows/[id]/download` | Download workflow as a ZIP file |
