@@ -32,8 +32,11 @@ export async function handleCronWorkflow(request: Request, workflowId: string): 
       })
       .returning();
 
-    // Execute workflow asynchronously (don't wait for completion)
-    executeWorkflowBackground(
+    // Await execution — Vercel terminates serverless functions once the response
+    // is sent, so fire-and-forget would kill the workflow mid-execution.
+    // Consumers should set `maxDuration` on their catch-all API route to allow
+    // enough time for the workflow to complete.
+    await executeWorkflowBackground(
       execution.id,
       workflowId,
       workflow.nodes as WorkflowNodeLike[],
@@ -45,7 +48,7 @@ export async function handleCronWorkflow(request: Request, workflowId: string): 
       success: true,
       workflowId,
       executionId: execution.id,
-      message: "Workflow execution started",
+      message: "Workflow execution completed",
     });
   } catch (error) {
     console.error("[Cron] Scheduled workflow execution error:", error);

@@ -79,7 +79,18 @@ CRON_SECRET=your-random-secret
 
 > **Tip:** On Vercel, you can generate this value automatically via the Vercel dashboard under **Settings → Cron Jobs**.
 
-### 3. Deploy
+### 3. Set `maxDuration` on your API route
+
+The cron handler awaits full workflow completion before returning. Vercel serverless functions have a default timeout (10s on Hobby, 60s on Pro), so you must increase `maxDuration` on your catch-all API route to allow enough time:
+
+```ts
+// app/api/[[...slug]]/route.ts
+export const maxDuration = 300; // seconds (requires Pro plan for >60s)
+
+export { GET, POST, PUT, PATCH, DELETE, OPTIONS } from "next-workflow-builder/api";
+```
+
+### 4. Deploy
 
 Deploy your project. Vercel will detect the `crons` key in `vercel.json` and register the schedule automatically. You can monitor cron executions in the Vercel dashboard under **Logs**.
 

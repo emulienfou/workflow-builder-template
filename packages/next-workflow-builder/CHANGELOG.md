@@ -1,5 +1,11 @@
 # next-workflow-builder
 
+## 0.7.2
+
+### Bug Fixes
+
+- Fix cron-triggered workflows producing "No steps recorded" on Vercel — `executeWorkflowBackground` is now awaited in the cron handler so Vercel keeps the serverless function alive until completion (consumers must set `maxDuration` on their catch-all API route)
+
 ## 0.7.1
 
 ### Features
