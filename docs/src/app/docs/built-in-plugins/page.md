@@ -14,6 +14,8 @@ Unlike [marketplace plugins](/docs/plugins) which add third-party integrations, 
 | [Merge](/docs/built-in-plugins/merge) | Combine data from two inputs | Data Transformation |
 | [Switch](/docs/built-in-plugins/switch) | Route workflow based on rules or values | Flow Control |
 | [Database Query](/docs/built-in-plugins/database-query) | Execute SQL queries against PostgreSQL | Data |
+| [Run Workflow](/docs/built-in-plugins/run-workflow) | Execute another workflow and wait for it to complete | Orchestration |
+| [Run Workflows in Sequence](/docs/built-in-plugins/run-workflows-in-sequence) | Execute multiple workflows one after another in order | Orchestration |
 
 ## How Built-in Plugins Differ from Marketplace Plugins
 

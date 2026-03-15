@@ -1,5 +1,14 @@
 # next-workflow-builder
 
+## 0.7.3
+
+### Features
+
+- Add built-in **Run Workflow** action — execute another workflow internally and wait for it to complete, bypassing HTTP entirely. Returns the sub-workflow's output for use in downstream nodes via `{{RunWorkflow.output}}`
+- Add built-in **Run Workflows in Sequence** action — execute an ordered list of workflows one after another. Supports a "continue on failure" option and returns per-workflow results with pass/fail summary
+- Add compound node rendering for Run Workflows in Sequence — the canvas node visually expands to show each child workflow as a numbered row with per-child status indicators (pending/success/error) after execution completes
+- Each sub-workflow execution creates its own execution record, visible individually in the Runs tab
+
 ## 0.7.2
 
 ### Bug Fixes
