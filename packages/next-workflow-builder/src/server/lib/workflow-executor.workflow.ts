@@ -636,6 +636,11 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           node.data.type === "action" &&
           node.data.config?.actionType === "Condition";
 
+        // Check if this is a loop node
+        const isLoopNode =
+          node.data.type === "action" &&
+          node.data.config?.actionType === "Loop";
+
         if (isConditionNode) {
           // For condition nodes, only execute next nodes if condition is true
           const conditionResult = (result.data as { condition?: boolean })
@@ -659,6 +664,76 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           } else {
             console.log(
               "[Workflow Executor] Condition is false, skipping next nodes",
+            );
+          }
+        } else if (isLoopNode) {
+          // For loop nodes, re-invoke for each batch until hasMore is false
+          const nextNodes = edgesBySource.get(nodeId) || [];
+          type LoopData = { hasMore: boolean; currentBatchIndex: number; totalBatches: number };
+          let loopData = result.data as LoopData | undefined;
+
+          if (loopData && nextNodes.length > 0) {
+            // Snapshot visited set at loop entry — downstream nodes need fresh sets per iteration
+            const visitedAtLoopEntry = new Set(visited);
+
+            let iteration = 0;
+            while (true) {
+              console.log(
+                "[Workflow Executor] Loop iteration",
+                iteration,
+                "- batchIndex:",
+                loopData!.currentBatchIndex,
+                "hasMore:",
+                loopData!.hasMore,
+              );
+
+              // Execute downstream nodes with a fresh visited set for this iteration
+              const iterationVisited = new Set(visitedAtLoopEntry);
+              await Promise.all(
+                nextNodes.map((nextNodeId) => executeNode(nextNodeId, iterationVisited)),
+              );
+
+              // Stop if no more batches
+              if (!loopData!.hasMore) break;
+
+              // Check for cancellation between iterations
+              if (await isCancelled()) {
+                console.log("[Workflow Executor] Loop cancelled between iterations");
+                break;
+              }
+
+              // Re-execute loop step with incremented batch index
+              const nextBatchIndex = loopData!.currentBatchIndex + 1;
+              const config = node.data.config || {};
+              const processedConfig = processTemplates(config, outputs);
+              const stepContext: StepContext = {
+                executionId,
+                nodeId: node.id,
+                nodeName: getNodeName(node),
+                nodeType: "Loop",
+              };
+
+              const nextLoopResult = await executeActionStep({
+                actionType: "Loop",
+                config: { ...processedConfig, currentBatchIndex: nextBatchIndex },
+                outputs,
+                context: stepContext,
+              });
+
+              // Update stored outputs so downstream templates resolve to new batch data
+              outputs[sanitizedNodeId] = {
+                label: node.data.label || nodeId,
+                data: nextLoopResult,
+              };
+              results[nodeId] = { success: true, data: nextLoopResult };
+
+              loopData = nextLoopResult as LoopData;
+              iteration++;
+            }
+          } else if (nextNodes.length > 0) {
+            // Loop returned no data (empty array?) — still execute downstream once
+            await Promise.all(
+              nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited)),
             );
           }
         } else {

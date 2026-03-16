@@ -9,6 +9,10 @@
 - Add compound node rendering for Run Workflows in Sequence — the canvas node visually expands to show each child workflow as a numbered row with per-child status indicators (pending/success/error) after execution completes
 - Each sub-workflow execution creates its own execution record, visible individually in the Runs tab
 
+### Bug Fixes
+
+- Fix **Loop** node only processing the first item — the executor now re-invokes the Loop step with an incremented `currentBatchIndex` after each iteration and re-executes all downstream nodes per batch until `hasMore` is false. Cancellation is checked between iterations
+
 ## 0.7.2
 
 ### Bug Fixes
