@@ -452,13 +452,18 @@ export const clearWorkflowAtom = atom(null, (get, set) => {
   set(historyAtom, [...history, { nodes: currentNodes, edges: currentEdges }]);
   set(futureAtom, []);
 
-  set(nodesAtom, []);
+  // Keep trigger nodes (consistent with deleteNodeAtom / deleteSelectedItemsAtom)
+  const triggerNodes = currentNodes.filter((node) => node.data.type === "trigger");
+  set(nodesAtom, triggerNodes);
   set(edgesAtom, []);
   set(selectedNodeAtom, null);
   set(selectedEdgeAtom, null);
 
   // Mark as having unsaved changes
   set(hasUnsavedChangesAtom, true);
+
+  // Trigger immediate autosave
+  set(autosaveAtom, { immediate: true });
 });
 
 // Load workflow from database
@@ -505,8 +510,6 @@ export const saveWorkflowAsAtom = atom(
 );
 
 // Workflow toolbar UI state atoms
-export const showClearDialogAtom = atom(false);
-export const showDeleteDialogAtom = atom(false);
 export const isSavingAtom = atom(false);
 export const hasUnsavedChangesAtom = atom(false);
 export const workflowNotFoundAtom = atom(false);

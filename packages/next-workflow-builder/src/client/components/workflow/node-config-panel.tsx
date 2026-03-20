@@ -9,6 +9,7 @@ import { integrationsAtom } from "../../lib/integrations-store";
 import { generateWorkflowCode } from "../../lib/workflow-codegen";
 import {
   clearNodeStatusesAtom,
+  clearWorkflowAtom,
   currentWorkflowIdAtom,
   currentWorkflowNameAtom,
   deleteEdgeAtom,
@@ -23,10 +24,10 @@ import {
   propertiesPanelActiveTabAtom,
   selectedEdgeAtom,
   selectedNodeAtom,
-  showClearDialogAtom,
-  showDeleteDialogAtom,
   updateNodeDataAtom,
 } from "../../lib/workflow-store";
+import { ConfirmOverlay } from "../overlays/confirm-overlay";
+import { useOverlay } from "../overlays/overlay-provider";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -151,8 +152,8 @@ export const PanelInner = () => {
   const deleteNode = useSetAtom(deleteNodeAtom);
   const deleteEdge = useSetAtom(deleteEdgeAtom);
   const deleteSelectedItems = useSetAtom(deleteSelectedItemsAtom);
-  const setShowClearDialog = useSetAtom(showClearDialogAtom);
-  const setShowDeleteDialog = useSetAtom(showDeleteDialogAtom);
+  const clearWorkflow = useSetAtom(clearWorkflowAtom);
+  const { open: openOverlay } = useOverlay();
   const clearNodeStatuses = useSetAtom(clearNodeStatusesAtom);
   const setPendingIntegrationNodes = useSetAtom(pendingIntegrationNodesAtom);
   const [newlyCreatedNodeId, setNewlyCreatedNodeId] = useAtom(
@@ -613,7 +614,19 @@ export const PanelInner = () => {
                 <div className="flex items-center gap-2 pt-4">
                   <Button
                     className="text-muted-foreground"
-                    onClick={ () => setShowClearDialog(true) }
+                    onClick={ () => {
+                      openOverlay(ConfirmOverlay, {
+                        title: "Clear Workflow",
+                        message:
+                          "Are you sure you want to clear all nodes and connections? This action cannot be undone.",
+                        confirmLabel: "Clear Workflow",
+                        confirmVariant: "destructive" as const,
+                        destructive: true,
+                        onConfirm: () => {
+                          clearWorkflow();
+                        },
+                      });
+                    } }
                     size="sm"
                     variant="ghost"
                   >
@@ -622,7 +635,26 @@ export const PanelInner = () => {
                   </Button>
                   <Button
                     className="text-muted-foreground"
-                    onClick={ () => setShowDeleteDialog(true) }
+                    onClick={ () => {
+                      openOverlay(ConfirmOverlay, {
+                        title: "Delete Workflow",
+                        message: `Are you sure you want to delete "${ currentWorkflowName }"? This will permanently delete the workflow. This cannot be undone.`,
+                        confirmLabel: "Delete Workflow",
+                        confirmVariant: "destructive" as const,
+                        destructive: true,
+                        onConfirm: async () => {
+                          if (!currentWorkflowId) return;
+                          try {
+                            await api.workflow.delete(currentWorkflowId);
+                            toast.success("Workflow deleted successfully");
+                            window.location.href = "/";
+                          } catch (error) {
+                            console.error("Failed to delete workflow:", error);
+                            toast.error("Failed to delete workflow. Please try again.");
+                          }
+                        },
+                      });
+                    } }
                     size="sm"
                     variant="ghost"
                   >

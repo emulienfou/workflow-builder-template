@@ -1,5 +1,14 @@
 # next-workflow-builder
 
+## 0.7.5
+
+### Bug Fixes
+
+- Fix **Clear** and **Delete** buttons on the Workflow Panel doing nothing when clicked — they were setting unused Jotai atoms instead of opening confirmation overlays. Now uses the same `ConfirmOverlay` pattern as the toolbar
+- Fix **Clear Workflow** not persisting — `clearWorkflowAtom` was missing the `autosaveAtom` trigger, so cleared state was never saved to the database
+- Fix **Clear Workflow** removing the Trigger node — now preserves trigger nodes, consistent with delete-node and multi-select delete behavior
+- Fix deleting a workflow failing with a foreign key constraint error when the workflow has execution history — execution logs and executions are now deleted before the workflow itself
+
 ## 0.7.4
 
 ### Features

@@ -456,6 +456,24 @@ export async function handleDeleteWorkflow(request: Request, workflowId: string)
       return NextResponse.json({ error: "Workflow not found" }, { status: 404 });
     }
 
+    // Delete execution logs and executions first (foreign key constraint)
+    const execList = await db.query.workflowExecutions.findMany({
+      where: eq(workflowExecutions.workflowId, workflowId),
+      columns: { id: true },
+    });
+
+    const executionIds = execList.map((e) => e.id);
+
+    if (executionIds.length > 0) {
+      await db
+        .delete(workflowExecutionLogs)
+        .where(inArray(workflowExecutionLogs.executionId, executionIds));
+
+      await db
+        .delete(workflowExecutions)
+        .where(eq(workflowExecutions.workflowId, workflowId));
+    }
+
     await db.delete(workflows).where(eq(workflows.id, workflowId));
     return NextResponse.json({ success: true });
   } catch (error) {
