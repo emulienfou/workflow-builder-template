@@ -16,8 +16,10 @@ import {
 export type SchemaField = {
   id?: string;
   name: string;
-  type: "string" | "number" | "boolean" | "array" | "object";
+  type: "string" | "number" | "boolean" | "array" | "object" | "enum";
   itemType?: "string" | "number" | "boolean" | "object";
+  enumValues?: string[];
+  enumItemType?: "string" | "number" | "boolean";
   fields?: SchemaField[];
   description?: string;
 };
@@ -51,11 +53,19 @@ export function SchemaBuilder({
     if (type !== "object") {
       updated.fields = undefined;
     }
+    if (type !== "enum") {
+      updated.enumValues = undefined;
+      updated.enumItemType = undefined;
+    }
     if (type === "array" && !updated.itemType) {
       updated.itemType = "string";
     }
     if (type === "object" && !updated.fields) {
       updated.fields = [];
+    }
+    if (type === "enum" && !updated.enumValues) {
+      updated.enumValues = [];
+      updated.enumItemType = "string";
     }
 
     return updated;
@@ -133,6 +143,7 @@ export function SchemaBuilder({
                     <SelectItem value="string">String</SelectItem>
                     <SelectItem value="number">Number</SelectItem>
                     <SelectItem value="boolean">Boolean</SelectItem>
+                    <SelectItem value="enum">Enum</SelectItem>
                     <SelectItem value="array">Array</SelectItem>
                     <SelectItem value="object">Object</SelectItem>
                   </SelectContent>
@@ -180,6 +191,89 @@ export function SchemaBuilder({
                     <SelectItem value="object">Object</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {field.type === "enum" && (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label
+                    className="ml-1"
+                    htmlFor={`field-enum-type-${level}-${index}`}
+                  >
+                    Value Type
+                  </Label>
+                  <Select
+                    disabled={disabled}
+                    onValueChange={(value) =>
+                      updateField(index, {
+                        enumItemType: value as SchemaField["enumItemType"],
+                      })
+                    }
+                    value={field.enumItemType || "string"}
+                  >
+                    <SelectTrigger
+                      className="w-full"
+                      id={`field-enum-type-${level}-${index}`}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="string">String</SelectItem>
+                      <SelectItem value="number">Number</SelectItem>
+                      <SelectItem value="boolean">Boolean</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="ml-1">Allowed Values</Label>
+                  {(field.enumValues || []).map((val, valIndex) => (
+                    <div className="flex gap-2" key={valIndex}>
+                      <Input
+                        disabled={disabled}
+                        onChange={(e) => {
+                          const newValues = [...(field.enumValues || [])];
+                          newValues[valIndex] = e.target.value;
+                          updateField(index, { enumValues: newValues });
+                        }}
+                        placeholder={
+                          field.enumItemType === "boolean"
+                            ? "true or false"
+                            : field.enumItemType === "number"
+                              ? "e.g. 42"
+                              : "e.g. active"
+                        }
+                        value={val}
+                      />
+                      <Button
+                        disabled={disabled}
+                        onClick={() => {
+                          const newValues = (field.enumValues || []).filter(
+                            (_, i) => i !== valIndex
+                          );
+                          updateField(index, { enumValues: newValues });
+                        }}
+                        size="icon"
+                        variant="ghost"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    className="w-full"
+                    disabled={disabled}
+                    onClick={() => {
+                      const newValues = [...(field.enumValues || []), ""];
+                      updateField(index, { enumValues: newValues });
+                    }}
+                    type="button"
+                    variant="outline"
+                  >
+                    <Plus className="size-4" />
+                    Add Value
+                  </Button>
+                </div>
               </div>
             )}
 

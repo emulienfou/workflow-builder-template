@@ -1,5 +1,11 @@
 # next-workflow-builder
 
+## 0.7.6
+
+### Features
+
+- Add **Enum** field type to the Webhook payload schema builder — allows defining a fixed set of allowed values with a configurable value type (`string`, `number`, or `boolean`). Enum values are displayed in template autocomplete as `enum<value1 | value2 | ...>`
+
 ## 0.7.5
 
 ### Bug Fixes

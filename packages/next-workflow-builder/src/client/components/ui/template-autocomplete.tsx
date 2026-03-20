@@ -19,8 +19,10 @@ type TemplateAutocompleteProps = {
 
 type SchemaField = {
   name: string;
-  type: "string" | "number" | "boolean" | "array" | "object";
+  type: "string" | "number" | "boolean" | "array" | "object" | "enum";
   itemType?: "string" | "number" | "boolean" | "object";
+  enumValues?: string[];
+  enumItemType?: "string" | "number" | "boolean";
   fields?: SchemaField[];
   description?: string;
 };
@@ -65,7 +67,9 @@ const schemaToFields = (
     const typeLabel =
       schemaField.type === "array"
         ? `${ schemaField.itemType }[]`
-        : schemaField.type;
+        : schemaField.type === "enum"
+          ? `enum<${ (schemaField.enumValues || []).join(" | ") || schemaField.enumItemType || "string" }>`
+          : schemaField.type;
     const description = schemaField.description || `${ typeLabel }`;
 
     fields.push({ field: fieldPath, description });
