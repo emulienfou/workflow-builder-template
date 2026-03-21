@@ -1,6 +1,6 @@
 /**
  * Executable step function for Merge action
- * Combines data from two input arrays using different strategies
+ * Combines data from multiple input arrays using different strategies
  * Similar to n8n's Merge node
  */
 import "server-only";
@@ -12,15 +12,15 @@ export type JoinType = "inner" | "leftOuter" | "rightOuter" | "fullOuter";
 export type UnmatchedHandling = "discard" | "useNull";
 
 export type MergeInput = StepInput & {
-  /** First input array */
-  input1: unknown[];
-  /** Second input array */
-  input2: unknown[];
+  /** Dynamic inputs: input1, input2, ... inputN */
+  [key: string]: unknown;
+  /** Number of inputs (default 2 for backwards compatibility) */
+  inputCount?: number;
   /** Merge mode */
   mode?: MergeMode;
-  /** Field name in input1 to match on (for combineByFields) */
+  /** Field name to match on (for combineByFields) */
   matchField1?: string;
-  /** Field name in input2 to match on (for combineByFields) */
+  /** Field name in input2 to match on (for combineByFields, backwards compat) */
   matchField2?: string;
   /** Join type (for combineByFields) */
   joinType?: JoinType;
@@ -42,111 +42,127 @@ function getField(item: unknown, field: string): unknown {
   return undefined;
 }
 
-function mergeAppend(items1: unknown[], items2: unknown[]): MergeResult {
-  const merged = [...items1, ...items2];
+function collectInputs(input: MergeInput): unknown[][] {
+  const count = Number(input.inputCount) || 2;
+  const inputs: unknown[][] = [];
+  for (let i = 1; i <= count; i++) {
+    const val = input[`input${i}`];
+    inputs.push(Array.isArray(val) ? val : []);
+  }
+  return inputs;
+}
+
+function mergeAppend(inputs: unknown[][]): MergeResult {
+  const merged = inputs.flat();
   return { merged, totalItems: merged.length };
 }
 
 function mergeByPosition(
-  items1: unknown[],
-  items2: unknown[],
+  inputs: unknown[][],
   unmatchedHandling: UnmatchedHandling,
 ): MergeResult {
-  const maxLength = Math.max(items1.length, items2.length);
+  const maxLength = Math.max(...inputs.map((arr) => arr.length));
   const useNull = unmatchedHandling !== "discard";
   const merged: unknown[] = [];
 
   for (let i = 0; i < maxLength; i++) {
-    const item1 = items1[i];
-    const item2 = items2[i];
-
-    if (!useNull && (item1 === undefined || item2 === undefined)) {
+    if (!useNull && inputs.some((arr) => arr[i] === undefined)) {
       continue;
     }
 
-    merged.push({
-      ...(item1 && typeof item1 === "object" ? item1 : { input1: item1 ?? null }),
-      ...(item2 && typeof item2 === "object" ? item2 : { input2: item2 ?? null }),
-    });
+    const combined: Record<string, unknown> = {};
+    for (let j = 0; j < inputs.length; j++) {
+      const item = inputs[j][i];
+      if (item && typeof item === "object") {
+        Object.assign(combined, item);
+      } else {
+        combined[`input${j + 1}`] = item ?? null;
+      }
+    }
+    merged.push(combined);
   }
 
   return { merged, totalItems: merged.length };
 }
 
 function mergeByFields(
-  items1: unknown[],
-  items2: unknown[],
-  field1: string,
-  field2: string,
+  inputs: unknown[][],
+  matchField: string,
   joinType: JoinType,
 ): MergeResult {
-  // Build a lookup map for input2
-  const map2 = new Map<unknown, unknown[]>();
-  for (const item of items2) {
-    const key = getField(item, field2);
-    if (!map2.has(key)) {
-      map2.set(key, []);
-    }
-    map2.get(key)!.push(item);
+  if (inputs.length < 2) {
+    return { merged: inputs[0] || [], totalItems: inputs[0]?.length || 0 };
   }
 
-  const merged: unknown[] = [];
-  const matchedKeys2 = new Set<unknown>();
+  // Start with the first input and progressively merge each subsequent input
+  let current = inputs[0];
 
-  // Process input1 items
-  for (const item1 of items1) {
-    const key = getField(item1, field1);
-    const matches = map2.get(key);
-
-    if (matches && matches.length > 0) {
-      matchedKeys2.add(key);
-      for (const item2 of matches) {
-        merged.push({
-          ...(typeof item1 === "object" ? item1 : {}),
-          ...(typeof item2 === "object" ? item2 : {}),
-        });
+  for (let idx = 1; idx < inputs.length; idx++) {
+    const next = inputs[idx];
+    const map = new Map<unknown, unknown[]>();
+    for (const item of next) {
+      const key = getField(item, matchField);
+      if (!map.has(key)) {
+        map.set(key, []);
       }
-    } else if (joinType === "leftOuter" || joinType === "fullOuter") {
-      merged.push({ ...(typeof item1 === "object" ? item1 : {}) });
+      map.get(key)!.push(item);
     }
-  }
 
-  // Add unmatched input2 items for right/full outer joins
-  if (joinType === "rightOuter" || joinType === "fullOuter") {
-    for (const item2 of items2) {
-      const key = getField(item2, field2);
-      if (!matchedKeys2.has(key)) {
-        merged.push({ ...(typeof item2 === "object" ? item2 : {}) });
+    const merged: unknown[] = [];
+    const matchedKeys = new Set<unknown>();
+
+    for (const item1 of current) {
+      const key = getField(item1, matchField);
+      const matches = map.get(key);
+
+      if (matches && matches.length > 0) {
+        matchedKeys.add(key);
+        for (const item2 of matches) {
+          merged.push({
+            ...(typeof item1 === "object" ? item1 : {}),
+            ...(typeof item2 === "object" ? item2 : {}),
+          });
+        }
+      } else if (joinType === "leftOuter" || joinType === "fullOuter") {
+        merged.push({ ...(typeof item1 === "object" ? item1 : {}) });
       }
     }
+
+    if (joinType === "rightOuter" || joinType === "fullOuter") {
+      for (const item2 of next) {
+        const key = getField(item2, matchField);
+        if (!matchedKeys.has(key)) {
+          merged.push({ ...(typeof item2 === "object" ? item2 : {}) });
+        }
+      }
+    }
+
+    current = merged;
   }
 
-  return { merged, totalItems: merged.length };
+  return { merged: current, totalItems: current.length };
 }
 
 function evaluateMerge(input: MergeInput): MergeResult {
-  const items1 = Array.isArray(input.input1) ? input.input1 : [];
-  const items2 = Array.isArray(input.input2) ? input.input2 : [];
+  const inputs = collectInputs(input);
   const mode = input.mode || "append";
 
   switch (mode) {
     case "append":
-      return mergeAppend(items1, items2);
+      return mergeAppend(inputs);
 
     case "combineByPosition":
-      return mergeByPosition(items1, items2, input.unmatchedHandling || "useNull");
+      return mergeByPosition(inputs, input.unmatchedHandling || "useNull");
 
     case "combineByFields":
       return mergeByFields(
-        items1,
-        items2,
+        inputs,
         input.matchField1 || "id",
-        input.matchField2 || "id",
         input.joinType || "inner",
       );
 
     default:
-      return mergeAppend(items1, items2);
+      return mergeAppend(inputs);
   }
 }
 

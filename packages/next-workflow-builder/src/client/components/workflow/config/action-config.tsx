@@ -34,6 +34,7 @@ import { ActionConfigRenderer } from "./action-config-renderer";
 type ActionConfigProps = {
   config: Record<string, unknown>;
   onUpdateConfig: (key: string, value: string) => void;
+  onUpdateMultipleConfig?: (updates: Record<string, string>) => void;
   disabled: boolean;
   isOwner?: boolean;
 };
@@ -43,11 +44,13 @@ function SystemActionFields({
   actionType,
   config,
   onUpdateConfig,
+  onUpdateMultipleConfig,
   disabled,
 }: {
   actionType: string;
   config: Record<string, unknown>;
   onUpdateConfig: (key: string, value: string) => void;
+  onUpdateMultipleConfig?: (updates: Record<string, string>) => void;
   disabled: boolean;
 }) {
   switch (actionType) {
@@ -73,6 +76,7 @@ function SystemActionFields({
           config={ config }
           disabled={ disabled }
           onUpdateConfig={ onUpdateConfig }
+          onUpdateMultipleConfig={ onUpdateMultipleConfig }
         />
       );
     case "Loop":
@@ -198,6 +202,7 @@ function normalizeActionType(actionType: string): string {
 export function ActionConfig({
   config,
   onUpdateConfig,
+  onUpdateMultipleConfig,
   disabled,
   isOwner = true,
 }: ActionConfigProps) {
@@ -404,6 +409,7 @@ export function ActionConfig({
         config={ config }
         disabled={ disabled }
         onUpdateConfig={ onUpdateConfig }
+        onUpdateMultipleConfig={ onUpdateMultipleConfig }
       />
 
       {/* Plugin actions - declarative config fields */ }

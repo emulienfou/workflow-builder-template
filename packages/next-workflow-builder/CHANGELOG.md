@@ -7,6 +7,14 @@
 - Add **Enum** field type to the Webhook payload schema builder — allows defining a fixed set of allowed values with a configurable value type (`string`, `number`, or `boolean`). Enum values are displayed in template autocomplete as `enum<value1 | value2 | ...>`
 - Make **Switch** plugin routes fully dynamic — users can now add and remove routes with no upper limit (minimum 1). Previously hardcoded to exactly 4 routes. Existing workflows with 4 routes continue to work without migration
 - Add **Switch node routing** — Switch nodes now display multiple output handles (one per route + Default) on the right side. Each handle can be connected to a different downstream node. The executor routes execution only to the matched route's connected nodes based on `sourceHandle` IDs on edges
+- Add **Condition node routing** — Condition nodes now display two output handles: **True** and **False**. Each can be connected to different downstream nodes for branching. Backwards compatible with existing workflows (legacy edges without handles still work as before)
+- Add **Switch route condition evaluation** — route conditions in rules mode are now properly evaluated as expressions (supports `===`, `!==`, `>`, `<`, `>=`, `<=`) instead of being passed as raw strings
+- Fix **Switch** code generation showing `unknownStep` — Switch was missing from `SYSTEM_ACTION_TEMPLATES`, now correctly generates `switchStep` code
+- Make **Merge** plugin inputs fully dynamic — users can now add and remove inputs (minimum 2, no upper limit). Previously hardcoded to exactly 2 inputs. Merge nodes display multiple labeled target handles on the left side, one per input. The executor maps incoming edges by `targetHandle` to the correct input slot. Existing workflows with 2 inputs continue to work without migration
+
+### Bug Fixes
+
+- Fix **Condition** Data Type select being stuck — changing the data type called `onUpdateConfig` twice in rapid succession, causing the second call to overwrite the first with stale state. Now batches both `dataType` and `operator` updates into a single atomic config change via `onUpdateMultipleConfig`
 
 ## 0.7.5
 

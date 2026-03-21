@@ -17,12 +17,19 @@ export type SourceHandle = {
   label?: string;
 };
 
+export type TargetHandle = {
+  id: string;
+  label?: string;
+};
+
 export type NodeProps = ComponentProps<typeof Card> & {
   handles: {
     target: boolean;
     source: boolean;
     /** Multiple named source handles (e.g., Switch routes). Overrides single source handle when set. */
     sourceHandles?: SourceHandle[];
+    /** Multiple named target handles (e.g., Merge inputs). Overrides single target handle when set. */
+    targetHandles?: TargetHandle[];
   };
   status?: "idle" | "running" | "success" | "error";
 };
@@ -38,7 +45,32 @@ export const Node = ({ handles, className, status, ...props }: NodeProps) => (
     {...props}
   >
     {status === "running" && <AnimatedBorder />}
-    {handles.target && <Handle position={Position.Left} type="target" />}
+    {handles.targetHandles && handles.targetHandles.length > 0 ? (
+      <div className="absolute top-0 -left-[4px] flex h-full flex-col items-start justify-center gap-1">
+        {handles.targetHandles.map((h) => (
+          <div className="relative flex items-center" key={h.id}>
+            <Handle
+              id={h.id}
+              position={Position.Left}
+              style={{
+                position: "relative",
+                top: "auto",
+                left: "auto",
+                transform: "none",
+              }}
+              type="target"
+            />
+            {h.label && (
+              <span className="ml-1.5 text-muted-foreground text-[9px] leading-none">
+                {h.label}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    ) : (
+      handles.target && <Handle position={Position.Left} type="target" />
+    )}
     {handles.sourceHandles && handles.sourceHandles.length > 0 ? (
       <div className="absolute top-0 -right-[4px] flex h-full flex-col items-end justify-center gap-1">
         {handles.sourceHandles.map((h, i) => (

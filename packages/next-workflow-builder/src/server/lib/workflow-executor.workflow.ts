@@ -624,20 +624,56 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
         // Merge predecessor step outputs into config so steps can access previous results directly
         // Config values take precedence over predecessor outputs
         const predecessorData: Record<string, unknown> = {};
-        const predecessorIds = edgesByTarget.get(nodeId) || [];
-        for (const predId of predecessorIds) {
-          const sanitizedPredId = predId.replace(/[^a-zA-Z0-9]/g, "_");
-          const predOutput = outputs[sanitizedPredId];
-          if (predOutput?.data && typeof predOutput.data === "object") {
+        const isMergeNode = actionType === "Merge";
+
+        if (isMergeNode) {
+          // For Merge nodes, map each incoming edge's targetHandle to the correct input slot
+          const incomingEdges = edges.filter((e) => e.target === nodeId);
+          for (const edge of incomingEdges) {
+            const sanitizedPredId = edge.source.replace(/[^a-zA-Z0-9]/g, "_");
+            const predOutput = outputs[sanitizedPredId];
+            if (!predOutput?.data) continue;
+
             // biome-ignore lint/suspicious/noExplicitAny: Dynamic output data
             let payload: any = predOutput.data;
-            // For standardized { success, data } format, unwrap into .data
-            if ("success" in payload && "data" in payload && payload.data && typeof payload.data === "object") {
+            if ("success" in payload && "data" in payload && payload.data) {
               payload = payload.data;
             }
-            for (const [key, value] of Object.entries(payload)) {
-              if (key !== "success" && key !== "error") {
-                predecessorData[key] = value;
+
+            if (edge.targetHandle) {
+              // New-style: targetHandle is "input-0", "input-1", etc.
+              const handleIndex = Number.parseInt(edge.targetHandle.replace("input-", ""), 10);
+              if (!Number.isNaN(handleIndex)) {
+                // Store the full output data as the input value for that slot
+                predecessorData[`input${handleIndex + 1}`] = payload;
+              }
+            } else {
+              // Backwards compatibility: no target handles, spread all predecessor data
+              if (typeof payload === "object") {
+                for (const [key, value] of Object.entries(payload)) {
+                  if (key !== "success" && key !== "error") {
+                    predecessorData[key] = value;
+                  }
+                }
+              }
+            }
+          }
+        } else {
+          const predecessorIds = edgesByTarget.get(nodeId) || [];
+          for (const predId of predecessorIds) {
+            const sanitizedPredId = predId.replace(/[^a-zA-Z0-9]/g, "_");
+            const predOutput = outputs[sanitizedPredId];
+            if (predOutput?.data && typeof predOutput.data === "object") {
+              // biome-ignore lint/suspicious/noExplicitAny: Dynamic output data
+              let payload: any = predOutput.data;
+              // For standardized { success, data } format, unwrap into .data
+              if ("success" in payload && "data" in payload && payload.data && typeof payload.data === "object") {
+                payload = payload.data;
+              }
+              for (const [key, value] of Object.entries(payload)) {
+                if (key !== "success" && key !== "error") {
+                  predecessorData[key] = value;
+                }
               }
             }
           }
@@ -729,7 +765,7 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
           node.data.config?.actionType === "Loop";
 
         if (isConditionNode) {
-          // For condition nodes, only execute next nodes if condition is true
+          // For condition nodes, route to true/false handles
           const conditionResult = (result.data as { condition?: boolean })
             ?.condition;
           console.log(
@@ -737,14 +773,29 @@ export async function executeWorkflow(input: WorkflowExecutionInput) {
             conditionResult,
           );
 
-          if (conditionResult === true) {
+          const handleId = conditionResult ? "condition-true" : "condition-false";
+          const handleTargets = edgesBySourceHandle.get(`${nodeId}:${handleId}`) || [];
+
+          if (handleTargets.length > 0) {
+            // New-style: route by handle
+            console.log(
+              "[Workflow Executor] Condition routing via handle:",
+              handleId,
+              "executing",
+              handleTargets.length,
+              "next nodes",
+            );
+            await Promise.all(
+              handleTargets.map((nextNodeId) => executeNode(nextNodeId, visited)),
+            );
+          } else if (conditionResult === true) {
+            // Backwards compatibility: no handles on edges, use old behavior
             const nextNodes = edgesBySource.get(nodeId) || [];
             console.log(
-              "[Workflow Executor] Condition is true, executing",
+              "[Workflow Executor] Condition is true (legacy), executing",
               nextNodes.length,
               "next nodes in parallel",
             );
-            // Execute all next nodes in parallel
             await Promise.all(
               nextNodes.map((nextNodeId) => executeNode(nextNodeId, visited)),
             );

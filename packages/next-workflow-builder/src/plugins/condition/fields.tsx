@@ -8,10 +8,12 @@ import { DATA_TYPE_OPTIONS, type DataType, OPERATORS } from "./operators";
 function ConditionFields({
   config,
   onUpdateConfig,
+  onUpdateMultipleConfig,
   disabled,
 }: {
   config: Record<string, unknown>;
   onUpdateConfig: (key: string, value: string) => void;
+  onUpdateMultipleConfig?: (updates: Record<string, string>) => void;
   disabled: boolean;
 }) {
   const dataType = (config?.dataType as DataType) || "string";
@@ -21,11 +23,18 @@ function ConditionFields({
   const isUnary = selectedOp?.unary ?? false;
 
   function handleDataTypeChange(value: string) {
-    onUpdateConfig("dataType", value);
     // Reset operator to first of new type
     const newOps = OPERATORS[value as DataType];
-    if (newOps?.[0]) {
-      onUpdateConfig("operator", newOps[0].value);
+    const newOperator = newOps?.[0]?.value ?? "";
+
+    if (onUpdateMultipleConfig) {
+      // Batch both updates to avoid stale state
+      onUpdateMultipleConfig({ dataType: value, operator: newOperator });
+    } else {
+      onUpdateConfig("dataType", value);
+      if (newOperator) {
+        onUpdateConfig("operator", newOperator);
+      }
     }
   }
 

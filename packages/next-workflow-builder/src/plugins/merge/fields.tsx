@@ -1,5 +1,7 @@
 "use client";
 
+import { Minus, Plus } from "lucide-react";
+import { Button } from "../../client/components/ui/button";
 import { Label } from "../../client/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../client/components/ui/select";
 import { TemplateBadgeInput } from "../../client/components/ui/template-badge-input";
@@ -14,6 +16,18 @@ function MergeFields({
   disabled: boolean;
 }) {
   const mode = (config?.mode as string) || "append";
+  const inputCount = Number(config?.inputCount) || 2;
+
+  const addInput = () => {
+    onUpdateConfig("inputCount", String(inputCount + 1));
+  };
+
+  const removeInput = () => {
+    if (inputCount <= 2) return;
+    const last = inputCount;
+    onUpdateConfig(`input${last}`, "");
+    onUpdateConfig("inputCount", String(inputCount - 1));
+  };
 
   return (
     <div className="space-y-4">
@@ -34,38 +48,49 @@ function MergeFields({
           </SelectContent>
         </Select>
         <p className="text-muted-foreground text-xs">
-          { mode === "append" && "Concatenate both lists into one." }
-          { mode === "combineByPosition" && "Merge items at the same index from both inputs." }
+          { mode === "append" && "Concatenate all lists into one." }
+          { mode === "combineByPosition" && "Merge items at the same index from all inputs." }
           { mode === "combineByFields" && "Match and merge items based on a common field." }
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="input1">Input 1</Label>
-        <TemplateBadgeInput
-          disabled={ disabled }
-          id="input1"
-          onChange={ (value) => onUpdateConfig("input1", value) }
-          placeholder="e.g., {{PreviousNode.rows}}"
-          value={ (config?.input1 as string) || "" }
-        />
-        <p className="text-muted-foreground text-xs">
-          First array to merge. Use @ to reference outputs from previous nodes.
-        </p>
-      </div>
+      { Array.from({ length: inputCount }, (_, i) => (
+        <div className="space-y-2" key={ i }>
+          <Label htmlFor={ `input${i + 1}` }>Input { i + 1 }</Label>
+          <TemplateBadgeInput
+            disabled={ disabled }
+            id={ `input${i + 1}` }
+            onChange={ (value) => onUpdateConfig(`input${i + 1}`, value) }
+            placeholder={ `e.g., {{Node.rows}}` }
+            value={ (config?.[`input${i + 1}`] as string) || "" }
+          />
+          { i === 0 && (
+            <p className="text-muted-foreground text-xs">
+              Use @ to reference outputs from previous nodes.
+            </p>
+          ) }
+        </div>
+      )) }
 
-      <div className="space-y-2">
-        <Label htmlFor="input2">Input 2</Label>
-        <TemplateBadgeInput
+      <div className="flex gap-2">
+        <Button
+          className="flex-1"
           disabled={ disabled }
-          id="input2"
-          onChange={ (value) => onUpdateConfig("input2", value) }
-          placeholder="e.g., {{AnotherNode.results}}"
-          value={ (config?.input2 as string) || "" }
-        />
-        <p className="text-muted-foreground text-xs">
-          Second array to merge. Use @ to reference outputs from previous nodes.
-        </p>
+          onClick={ addInput }
+          type="button"
+          variant="outline"
+        >
+          <Plus className="mr-2 size-4"/>
+          Add Input
+        </Button>
+        <Button
+          disabled={ disabled || inputCount <= 2 }
+          onClick={ removeInput }
+          type="button"
+          variant="outline"
+        >
+          <Minus className="size-4"/>
+        </Button>
       </div>
 
       { mode === "combineByPosition" && (
@@ -90,30 +115,16 @@ function MergeFields({
       { mode === "combineByFields" && (
         <>
           <div className="space-y-2">
-            <Label htmlFor="matchField1">Match Field (Input 1)</Label>
+            <Label htmlFor="matchField">Match Field</Label>
             <TemplateBadgeInput
               disabled={ disabled }
-              id="matchField1"
+              id="matchField"
               onChange={ (value) => onUpdateConfig("matchField1", value) }
               placeholder="e.g., id"
               value={ (config?.matchField1 as string) || "" }
             />
             <p className="text-muted-foreground text-xs">
-              Field name in Input 1 to match on.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="matchField2">Match Field (Input 2)</Label>
-            <TemplateBadgeInput
-              disabled={ disabled }
-              id="matchField2"
-              onChange={ (value) => onUpdateConfig("matchField2", value) }
-              placeholder="e.g., id"
-              value={ (config?.matchField2 as string) || "" }
-            />
-            <p className="text-muted-foreground text-xs">
-              Field name in Input 2 to match on.
+              Field name to match items on across all inputs.
             </p>
           </div>
 

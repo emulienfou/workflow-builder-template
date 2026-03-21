@@ -395,6 +395,13 @@ export const PanelInner = () => {
     [updateNodeData, setPendingIntegrationNodes],
   );
 
+  const handleUpdateMultipleConfig = (updates: Record<string, string>) => {
+    if (selectedNode) {
+      const newConfig = { ...selectedNode.data.config, ...updates };
+      updateNodeData({ id: selectedNode.id, data: { config: newConfig } });
+    }
+  };
+
   const handleUpdateConfig = (key: string, value: string) => {
     if (selectedNode) {
       let newConfig = { ...selectedNode.data.config, [key]: value };
@@ -869,6 +876,7 @@ export const PanelInner = () => {
                   disabled={ isGenerating || !isOwner }
                   isOwner={ isOwner }
                   onUpdateConfig={ handleUpdateConfig }
+                  onUpdateMultipleConfig={ handleUpdateMultipleConfig }
                 />
               ) : null }
 

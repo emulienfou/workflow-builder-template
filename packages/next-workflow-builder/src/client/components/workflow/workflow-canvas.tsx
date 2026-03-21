@@ -350,7 +350,7 @@ export function WorkflowCanvas() {
           source: sourceId,
           target: targetId,
           sourceHandle: fromSource ? connectingHandleId.current : null,
-          targetHandle: null,
+          targetHandle: !fromSource ? connectingHandleId.current : null,
         });
       }
     },

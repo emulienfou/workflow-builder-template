@@ -23,7 +23,7 @@ import {
   selectedExecutionIdAtom,
   type WorkflowNodeData,
 } from "../../../lib/workflow-store";
-import { Node, NodeDescription, NodeTitle, type SourceHandle } from "../../ai-elements/node";
+import { Node, NodeDescription, NodeTitle, type SourceHandle, type TargetHandle } from "../../ai-elements/node";
 import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog";
 
 // Helper to get display name for AI model
@@ -353,27 +353,47 @@ export const ActionNode = memo(({ data, selected, id }: ActionNodeProps) => {
 
   // Build source handles for Switch nodes
   const isSwitchNode = actionType === "Switch";
-  let switchSourceHandles: SourceHandle[] | undefined;
+  const isConditionNode = actionType === "Condition";
+  let multiSourceHandles: SourceHandle[] | undefined;
   if (isSwitchNode) {
     const routeCount = Number(data.config?.routeCount) || 4;
-    switchSourceHandles = [];
+    multiSourceHandles = [];
     for (let i = 0; i < routeCount; i++) {
       const name = (data.config?.[`routeName${i}`] as string) || `Route ${i + 1}`;
-      switchSourceHandles.push({ id: `route-${i}`, label: name });
+      multiSourceHandles.push({ id: `route-${i}`, label: name });
     }
-    switchSourceHandles.push({ id: "route-default", label: "Default" });
+    multiSourceHandles.push({ id: "route-default", label: "Default" });
+  } else if (isConditionNode) {
+    multiSourceHandles = [
+      { id: "condition-true", label: "True" },
+      { id: "condition-false", label: "False" },
+    ];
   }
+  const hasMultiSource = isSwitchNode || isConditionNode;
+
+  // Build target handles for Merge nodes
+  const isMergeNode = actionType === "Merge";
+  let mergeTargetHandles: TargetHandle[] | undefined;
+  if (isMergeNode) {
+    const inputCount = Number(data.config?.inputCount) || 2;
+    mergeTargetHandles = [];
+    for (let i = 0; i < inputCount; i++) {
+      mergeTargetHandles.push({ id: `input-${i}`, label: `Input ${i + 1}` });
+    }
+  }
+
+  const hasMultiHandles = hasMultiSource || isMergeNode;
 
   return (
     <Node
       className={ cn(
         "relative flex flex-col items-center justify-center shadow-none transition-all duration-150 ease-out",
-        isSwitchNode ? "min-h-48 w-48" : "h-48 w-48",
+        hasMultiHandles ? "min-h-48 w-48" : "h-48 w-48",
         selected && "border-primary",
         isDisabled && "opacity-50",
       ) }
       data-testid={ `action-node-${ id }` }
-      handles={ { target: true, source: !isSwitchNode, sourceHandles: switchSourceHandles } }
+      handles={ { target: !isMergeNode, source: !hasMultiSource, sourceHandles: multiSourceHandles, targetHandles: mergeTargetHandles } }
       status={ status }
     >
       {/* Disabled badge in top left */ }

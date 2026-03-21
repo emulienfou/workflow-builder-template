@@ -6,6 +6,7 @@ import { findActionById } from "../../../../plugins";
 import { conditionAction } from "../../../../plugins/condition";
 import { databaseQueryAction } from "../../../../plugins/database-query";
 import { httpRequestAction } from "../../../../plugins/http-request";
+import { mergeAction } from "../../../../plugins/merge";
 import { switchAction } from "../../../../plugins/switch";
 
 // System action templates (non-plugin actions)
@@ -14,6 +15,7 @@ const SYSTEM_ACTION_TEMPLATES: Record<string, string> = {
   "HTTP Request": httpRequestAction.codeGenerator,
   Condition: conditionAction.codeGenerator,
   Switch: switchAction.codeGenerator,
+  Merge: mergeAction.codeGenerator,
 };
 
 const FALLBACK_ACTION_CODE = `async function actionStep(input: Record<string, unknown>) {
