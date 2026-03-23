@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { auth } from "../auth";
@@ -993,6 +993,53 @@ For more information, visit the [Workflow documentation](https://workflow.is).
             ? error.message
             : "Failed to prepare workflow download",
       },
+      { status: 500 },
+    );
+  }
+}
+
+export async function handleGetDashboardWorkflows(request: Request): Promise<Response> {
+  try {
+    const user = await resolveUser(request);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const CURRENT_NAME = "~~__CURRENT__~~";
+
+    const results = await db
+      .select({
+        id: workflows.id,
+        name: workflows.name,
+        description: workflows.description,
+        updatedAt: workflows.updatedAt,
+        totalRuns: count(workflowExecutions.id),
+        successCount: sql<number>`cast(count(*) filter (where ${workflowExecutions.status} = 'success') as int)`.as("success_count"),
+        errorCount: sql<number>`cast(count(*) filter (where ${workflowExecutions.status} = 'error') as int)`.as("error_count"),
+        cancelledCount: sql<number>`cast(count(*) filter (where ${workflowExecutions.status} = 'cancelled') as int)`.as("cancelled_count"),
+        latestRunStatus: sql<string | null>`max(${workflowExecutions.status}) filter (where ${workflowExecutions.startedAt} = (select max(started_at) from workflow_executions we2 where we2.workflow_id = ${workflows.id}))`.as("latest_run_status"),
+        latestRunStartedAt: sql<string | null>`max(${workflowExecutions.startedAt})`.as("latest_run_started_at"),
+        runningExecutionId: sql<string | null>`max(${workflowExecutions.id}) filter (where ${workflowExecutions.status} in ('running', 'pending'))`.as("running_execution_id"),
+      })
+      .from(workflows)
+      .leftJoin(workflowExecutions, eq(workflowExecutions.workflowId, workflows.id))
+      .where(and(eq(workflows.userId, user.id), sql`${workflows.name} != ${CURRENT_NAME}`))
+      .groupBy(workflows.id)
+      .orderBy(desc(workflows.updatedAt));
+
+    return NextResponse.json(
+      results.map((r) => ({
+        ...r,
+        totalRuns: Number(r.totalRuns),
+        successCount: Number(r.successCount),
+        errorCount: Number(r.errorCount),
+        cancelledCount: Number(r.cancelledCount),
+        updatedAt: r.updatedAt.toISOString(),
+        latestRunStartedAt: r.latestRunStartedAt ? new Date(r.latestRunStartedAt).toISOString() : null,
+      })),
+    );
+  } catch (error) {
+    console.error("Failed to get dashboard workflows:", error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to get dashboard workflows" },
       { status: 500 },
     );
   }

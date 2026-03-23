@@ -1,6 +1,7 @@
 "use client";
 
 // Pages
+export { DashboardPage } from "./components/pages/dashboard-page";
 export { WorkflowPage } from "./components/pages/workflow-page";
 export { WorkflowEditor } from "./components/workflow/workflow-editor";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Key, LogOut, Moon, Plug, Settings, Sun } from "lucide-react";
+import { Key, LayoutDashboard, LogOut, Moon, Plug, Settings, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -131,6 +131,12 @@ export const UserMenu = () => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator/>
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard">
+            <LayoutDashboard className="size-4"/>
+            <span>Dashboard</span>
+          </Link>
+        </DropdownMenuItem>
         { !isOAuthUser && (
           <DropdownMenuItem onClick={ () => openOverlay(SettingsOverlay) }>
             <Settings className="size-4"/>

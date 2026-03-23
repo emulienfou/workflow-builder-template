@@ -233,6 +233,7 @@ Register output display configurations. Called from auto-generated `lib/output-d
 
 ```ts
 import {
+  DashboardPage,
   Layout,
   WorkflowPage,
   WorkflowEditor,
@@ -328,6 +329,7 @@ All routes are relative to the `/api` base path.
 
 | Method | Path | Description |
 | --- | --- | --- |
+| GET | `/workflows/dashboard` | List all workflows with aggregated execution stats (for dashboard) |
 | GET | `/workflows/executions/[executionId]/status` | Get execution status |
 | GET | `/workflows/executions/[executionId]/logs` | Get execution logs |
 | POST | `/workflows/executions/[executionId]/cancel` | Cancel a running execution |

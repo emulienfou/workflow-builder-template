@@ -434,7 +434,25 @@ export const userApi = {
 };
 
 // Workflow API
+export type DashboardWorkflow = {
+  id: string;
+  name: string;
+  description: string | null;
+  updatedAt: string;
+  totalRuns: number;
+  successCount: number;
+  errorCount: number;
+  cancelledCount: number;
+  latestRunStatus: string | null;
+  latestRunStartedAt: string | null;
+  runningExecutionId: string | null;
+};
+
 export const workflowApi = {
+  // Get all workflows with aggregated execution stats (dashboard)
+  getDashboardWorkflows: () =>
+    apiCall<DashboardWorkflow[]>("/api/workflows/dashboard"),
+
   // Get all workflows
   getAll: () => apiCall<SavedWorkflow[]>("/api/workflows"),
 

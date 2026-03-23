@@ -85,6 +85,7 @@ Routes handled:
 | Path | Component | Description |
 | --- | --- | --- |
 | `/` | `HomePage` | New workflow landing page with placeholder canvas |
+| `/dashboard` | `DashboardPage` | All workflow executions at a glance |
 | `/workflows` | `WorkflowsRedirect` | Redirects to the most recently updated workflow |
 | `/workflows/[id]` | `WorkflowEditor` | Full workflow editor for a specific workflow |
 

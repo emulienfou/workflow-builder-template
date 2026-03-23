@@ -21,6 +21,7 @@ import {
   handleDeleteWorkflowExecutions,
   handleDuplicateWorkflow,
   handleExecuteWorkflow,
+  handleGetDashboardWorkflows,
   handleGetCurrentWorkflow,
   handleGetExecutionLogs,
   handleGetExecutionStatus,
@@ -83,6 +84,11 @@ async function route(request: Request): Promise<Response> {
     if (s1 === "current") {
       if (method === "GET") return handleGetCurrentWorkflow(request);
       if (method === "POST") return handleSaveCurrentWorkflow(request);
+    }
+
+    // Dashboard: GET /workflows/dashboard
+    if (s1 === "dashboard" && !s2) {
+      if (method === "GET") return handleGetDashboardWorkflows(request);
     }
 
     // Executions by executionId: /workflows/executions/[executionId]/status|logs

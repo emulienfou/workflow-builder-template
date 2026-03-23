@@ -47,6 +47,9 @@ const meta = {
       "cli-reference": {
         title: "CLI Reference",
       },
+      dashboard: {
+        title: "Dashboard",
+      },
       components: {
         title: "Components",
       },

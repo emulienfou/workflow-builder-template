@@ -5,6 +5,11 @@
 ### Features
 
 - Add **Switch "All matches" mode** — new Match selector (`First match` / `All matches`). When set to "All matches", the Switch evaluates every route and executes all whose condition is true, instead of stopping at the first match. The executor follows all matched route handles in parallel. Default remains "First match" for backwards compatibility
+- Redesign **Dashboard** page (`/dashboard`) — now shows a workflow-centric table instead of individual execution rows. Each workflow displays aggregated run stats (total, success, error, cancelled), latest run status with relative time, and inline action buttons to execute, stop, or delete workflows directly from the dashboard. Summary cards show total workflows, total runs, successes, and errors. Polls every 5 seconds for live updates
+- Add `GET /workflows/dashboard` API endpoint — returns all workflows for the authenticated user with aggregated execution stats (counts by status, latest run info, running execution ID) using SQL aggregation
+- Add "Dashboard" link in user dropdown menu
+- Export `DashboardPage` component from `next-workflow-builder/client` for consumers with custom routing
+
 
 ### Bug Fixes
 

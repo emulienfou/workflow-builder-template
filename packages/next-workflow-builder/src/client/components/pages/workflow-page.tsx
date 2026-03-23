@@ -3,6 +3,7 @@
 import { AuthView } from "@daveyplate/better-auth-ui";
 import { useParams } from "next/navigation";
 import { WorkflowEditor } from "../workflow/workflow-editor";
+import { DashboardPage } from "./dashboard-page";
 import { HomePage } from "./home-page";
 import { WorkflowsRedirect } from "./workflows-redirect";
 
@@ -13,6 +14,11 @@ const WorkflowPage = () => {
   // / → Home page (create new workflow)
   if (!slug || slug.length === 0) {
     return <HomePage/>;
+  }
+
+  // /dashboard → Dashboard page
+  if (slug[0] === "dashboard") {
+    return <DashboardPage/>;
   }
 
   // /auth/[path]
